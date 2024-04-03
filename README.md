@@ -1,5 +1,18 @@
 # Spectrum Distributor
 
+
+! This is different Repo than the Official PhantomSDR Repo !
+We offer more features as we only maintain support for Linux instead of the official repo
+- Futuristic Design
+- Decoders
+- Band Plan in the Waterfall
+- Statistics
+- Better Colorsmap
+- A different WebSDR List (https://sdr-list.xyz)
+- More to come
+
+
+
 ## Features
 - Web interface allowing many users (>100 on a good setup)
 - Common demodulation modes
