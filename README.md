@@ -2,7 +2,7 @@
 
 
 This is different Repo than the Official PhantomSDR Repo
-Most recommended OS is Ubuntu
+
 We offer more features as we only maintain support for Linux instead of the official repo
 - Futuristic Design
 - Decoders
@@ -12,6 +12,8 @@ We offer more features as we only maintain support for Linux instead of the offi
 - A different WebSDR List (https://sdr-list.xyz)
 - More to come
 
+## Issues
+- If you face issues try to run it on Ubuntu, as most was tested on Ubuntu
 
 
 ## Features
