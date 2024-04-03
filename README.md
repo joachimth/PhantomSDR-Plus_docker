@@ -2,6 +2,7 @@
 
 
 This is different Repo than the Official PhantomSDR Repo
+Most recommended OS is Ubuntu
 We offer more features as we only maintain support for Linux instead of the official repo
 - Futuristic Design
 - Decoders
