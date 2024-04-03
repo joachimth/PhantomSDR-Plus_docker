@@ -7,6 +7,12 @@ register_online=false # If the SDR should be registered on http://sdr-list.xyz t
 websdr_name="London WebSDR" # Name that is shown on http://sdr-list.xyz - Use max 14 Characters, more wont show on the website.
 antenna="Wire Antenna" # Antenna that is shown on http://sdr-list.xyz
 
+[websdr]
+register_online=true # If the SDR should be registered on https://sdr-list.xyz then put it to true
+name="Aachen WebSDR" # Name that is shown on https://sdr-list.xyz
+antenna="Mag-Loop" # Antenna that is shown on https://sdr-list.xyz
+grid_locator="JO30bs" # 4 or 6 length Grid Locatlr shown on https://sdr-list.xyz
+
 [limits]
 audio=1000
 waterfall=1000
