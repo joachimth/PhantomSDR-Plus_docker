@@ -25,8 +25,10 @@ We offer more features as we only maintain support for Linux instead of the offi
 
 ## Screenshots
 
-With an RX888 SDR:
-![Screenshot](/docs/screenshot.jpg)
+The Aachen WebSDR:
+![Screenshot](/docs/websdr.png)
+
+(https://sdr-list.xyz)
 
 ## Building
 Optional dependencies such as cuFFT or clFFT can be installed too.
