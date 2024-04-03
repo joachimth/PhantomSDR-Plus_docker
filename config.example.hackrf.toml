@@ -3,6 +3,12 @@ port=9002 # Server port
 html_root="html-svelte/dist/" # HTML files to be hosted
 otherusers=1 # Send where other users are listening, 0 to disable
 
+[websdr]
+register_online=true # If the SDR should be registered on https://sdr-list.xyz then put it to true
+name="Aachen WebSDR" # Name that is shown on https://sdr-list.xyz
+antenna="Mag-Loop" # Antenna that is shown on https://sdr-list.xyz
+grid_locator="JO30bs" # 4 or 6 length Grid Locatlr shown on https://sdr-list.xyz
+
 [input]
 sps=20000000 # Input Sample Rate
 fft_size=1048576 # FFT bins
