@@ -13,6 +13,7 @@ hostname="" # If you use ddns or something to host with a domain enter it here f
 [input]
 sps=20000000 # Input Sample Rate
 fft_size=1048576 # FFT bins
+brightness_offset=0 # Waterfall brightness offset. Reduce to negative if you see black regions in the waterfall
 frequency=98000000 # Baseband frequency
 signal="iq" # real or iq
 accelerator="none" # Accelerator: none, cuda, opencl
