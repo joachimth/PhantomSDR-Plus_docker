@@ -16,6 +16,7 @@ enum conn_type {
     WATERFALL,
     AUDIO,
     EVENTS,
+    CHAT,
     WATERFALL_RAW,
     SIGNAL_RAW,
     UNKNOWN
@@ -35,6 +36,8 @@ constexpr const char *type_to_name(conn_type type) {
         return "Waterfall Raw";
     case SIGNAL_RAW:
         return "Signal Raw";
+    case CHAT:
+        return "Chat";
     default:
         return "Unknown";
     }
@@ -48,12 +51,15 @@ enum audio_compressor { AUDIO_FLAC, AUDIO_OPUS };
 
 class WaterfallClient;
 class AudioClient;
+class ChatClient;
 typedef std::vector<
     std::multimap<std::pair<int, int>, std::shared_ptr<WaterfallClient>>>
     waterfall_slices_t;
 typedef std::deque<std::mutex> waterfall_mutexes_t;
 typedef std::multimap<std::pair<int, int>, std::shared_ptr<AudioClient>>
     signal_slices_t;
+
+
 
 class PacketSender {
   public:
@@ -90,6 +96,7 @@ class Client {
                                    std::optional<int> &level);
     virtual void on_demodulation_message(std::string &demodulation);
     virtual void on_userid_message(std::string &userid);
+    virtual void on_chat_message(connection_hdl sender_hdl, std::string &userid, std::string &message);
     virtual void on_mute(bool mute);
 
     // Type of connection

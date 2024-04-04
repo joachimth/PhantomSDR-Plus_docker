@@ -25,6 +25,9 @@ std::string get_mime_type(std::string &extension) {
 }
 
 void broadcast_server::on_http(connection_hdl hdl) {
+
+    // Disable the logging
+    m_server.set_access_channels(websocketpp::log::alevel::none);
     // Upgrade our connection handle to a full connection_ptr
     server::connection_ptr con = m_server.get_con_from_hdl(hdl);
 

@@ -1,6 +1,31 @@
+#include <cmath>
+
 #include "waterfall.h"
 #include "waterfallcompression.h"
-#include <cmath>
+#include <atomic>
+#include <chrono>
+#include <thread>
+#include <iostream>
+
+std::atomic<bool> monitor_thread_running{false};
+std::atomic<size_t> total_bits_sent{0}; // Atomic to safely increment from multiple clients
+double waterfall_kbits_per_second = 0;
+
+void monitor_data_rate() {
+    monitor_thread_running = true;
+    while (monitor_thread_running) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        size_t bits = total_bits_sent.exchange(0); // Reset counter and get value atomically
+        waterfall_kbits_per_second = bits / 1000.0;
+        //std::cout << "Data rate: " << kbits_per_second << " kbit/s" << std::endl;
+    }
+}
+
+void ensure_monitor_thread_runs() {
+    if (!monitor_thread_running) {
+        std::thread(monitor_data_rate).detach();
+    }
+}
 
 WaterfallClient::WaterfallClient(
     connection_hdl hdl, PacketSender &sender,
@@ -43,9 +68,18 @@ void WaterfallClient::set_waterfall_range(int level, int l, int r) {
 void WaterfallClient::send_waterfall(int8_t *buf, size_t frame_num) {
     try {
         int len = r - l;
+        // Assuming each element in buf is 1 byte, convert length to bits
+        size_t bits_sent = static_cast<size_t>(len) * 8;
+        
         waterfall_encoder->send(buf, len, frame_num, l << level, r << level);
+
+        // Ensure monitoring thread is running
+        ensure_monitor_thread_runs();
+
+        // Add to the total bits sent
+        total_bits_sent.fetch_add(bits_sent, std::memory_order_relaxed);
     } catch (...) {
-        // std::cout << "waterfall client disconnect" << std::endl;
+        // Handle error (client disconnect, etc.)
     }
 }
 
@@ -64,7 +98,7 @@ void WaterfallClient::on_window_message(int new_l, std::optional<double> &,
     float new_r_f = new_r;
     int downsample_levels = waterfall_slices.size();
     int new_level = downsample_levels - 1;
-    float best_difference = new_r_f - new_l_f;
+    float best_difference = min_waterfall_fft * 2;
     for (int i = 0; i < downsample_levels; i++) {
         float send_size = abs((new_r_f - new_l_f) - min_waterfall_fft);
         if (send_size < best_difference) {
@@ -79,15 +113,6 @@ void WaterfallClient::on_window_message(int new_l, std::optional<double> &,
 
     // Since the parameters are modified, output the new parameters
 
-    {
-        std::ostringstream command_log;
-        command_log << sender.ip_from_hdl(hdl);
-        command_log << " [Waterfall User: " << user_id << "]";
-        command_log << " Waterfall Level: " << new_level;
-        command_log << " Waterfall L: " << new_l;
-        command_log << " Waterfall R: " << new_r;
-        sender.log(hdl, command_log.str());
-    }
 
     set_waterfall_range(new_level, new_l, new_r);
 }

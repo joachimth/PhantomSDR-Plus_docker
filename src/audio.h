@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
+
 #include "FLAC++/encoder.h"
 #include "FLAC++/metadata.h"
 
@@ -11,7 +14,11 @@
 #include <opus/opus.h>
 #endif
 
+#define ZSTD_STATIC_LINKING_ONLY
+#include <zstd.h>
+
 #include "client.h"
+
 
 class AudioEncoder {
   public:
@@ -19,20 +26,15 @@ class AudioEncoder {
     void set_data(uint64_t frame_num, int l, double m, int r, double pwr);
     virtual int process(int32_t *data, size_t size) = 0;
     virtual int finish_encoder() = 0;
-    virtual ~AudioEncoder() {}
+    virtual ~AudioEncoder();
 
   protected:
     int send(const void *buffer, size_t bytes, unsigned current_frame);
     websocketpp::connection_hdl hdl;
     PacketSender& sender;
 
-    struct {
-        uint64_t frame_num;
-        uint32_t l, r;
-        double m, pwr;
-    } header;
-    
-    std::vector<uint8_t> packet;
+    json packet;
+    ZSTD_CStream *stream;
 };
 
 class FlacEncoder : public AudioEncoder, public FLAC::Encoder::Stream {

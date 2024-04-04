@@ -9,6 +9,11 @@
 // Main FFT loop to process input samples
 void broadcast_server::fft_task() {
 
+    // Attempt to import FFTW wisdom
+    if (!fftwf_import_wisdom_from_filename("fftw_wisdom")) {
+        std::cout << "No FFTW wisdom file found. Planning from scratch. This may take long on the first time but will then be fast." << std::endl;
+    }
+
     // This is the buffer where it converts to a float
 
     std::unique_ptr<FFT> fft = std::move(this->fft);
@@ -27,6 +32,12 @@ void broadcast_server::fft_task() {
     } else {
         fft->plan_c2c(FFT::FORWARD, FFTW_MEASURE | FFTW_DESTROY_INPUT);
     }
+    
+    // Export FFTW wisdom after planning
+    if (!fftwf_export_wisdom_to_filename("fftw_wisdom")) {
+        std::cout << "Failed to export FFTW wisdom." << std::endl;
+    }
+
     fft_buffer = reinterpret_cast<std::complex<float>*>(fft->get_output_buffer());
 
     // Target fps is 10, *2 since 50% overlap

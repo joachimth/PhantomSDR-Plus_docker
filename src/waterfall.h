@@ -4,6 +4,10 @@
 #include "client.h"
 #include "waterfallcompression.h"
 
+extern std::atomic<size_t> total_bits_sent;
+extern std::atomic<bool> monitor_thread_running;
+extern double waterfall_kbits_per_second;
+
 class WaterfallClient : public Client {
   public:
     WaterfallClient(connection_hdl hdl, PacketSender &sender,
@@ -27,6 +31,9 @@ class WaterfallClient : public Client {
 
     waterfall_slices_t &waterfall_slices;
     waterfall_mutexes_t &waterfall_slice_mtx;
+
+    std::chrono::steady_clock::time_point last_send_time;
+    int data_points_sent_in_current_second;
 };
 
 #endif

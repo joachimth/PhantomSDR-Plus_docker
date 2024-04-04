@@ -16,8 +16,11 @@
 #include "signal.h"
 #include "waterfall.h"
 #include "websocket.h"
+#include "chat.h"
 
 using websocketpp::connection_hdl;
+
+extern toml::table config;
 
 typedef std::set<connection_hdl, std::owner_less<connection_hdl>>
     event_con_list;
@@ -29,6 +32,11 @@ class broadcast_server : public PacketSender {
     void run(uint16_t port);
     void stop();
 
+    size_t get_events_connections_size() {
+
+        return events_connections.size();
+    }
+
     // Websocket handlers
     void on_open(connection_hdl hdl);
     void on_open_unknown(connection_hdl hdl);
@@ -38,6 +46,10 @@ class broadcast_server : public PacketSender {
     void on_close(connection_hdl hdl);
     void on_http(connection_hdl hdl);
 
+    //Chat
+    void on_open_chat(connection_hdl hdl);
+    void on_close_chat(connection_hdl hdl);
+
     // Events socket
     std::string get_event_info();
     std::string get_initial_state_info();
@@ -46,6 +58,7 @@ class broadcast_server : public PacketSender {
     void on_close_events(connection_hdl hdl);
     void set_event_timer();
     void on_timer(websocketpp::lib::error_code const &ec);
+    void update_statistics();
 
     // Main FFT loop to process input samples
     void fft_task();
@@ -140,6 +153,7 @@ class broadcast_server : public PacketSender {
     std::deque<std::mutex> waterfall_slice_mtx;
 
     event_con_list events_connections;
+    
     std::unordered_map<std::string, std::tuple<int, double, int>>
         signal_changes;
     std::mutex signal_changes_mtx;

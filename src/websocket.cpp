@@ -2,6 +2,7 @@
 #include "signal.h"
 #include "spectrumserver.h"
 #include "waterfall.h"
+#include "chat.h"
 
 #include "glaze/glaze.hpp"
 
@@ -19,6 +20,9 @@ void broadcast_server::on_open(connection_hdl hdl) {
         // on_open_waterfall_raw(hdl);
     } else if (path == "/events") {
         on_open_events(hdl);
+    } else if (path == "/chat") {
+        on_open_chat(hdl);
+    
     } else {
         on_open_unknown(hdl);
     }
@@ -38,6 +42,8 @@ void broadcast_server::send_basic_info(connection_hdl hdl) {
     // Example format:
     // "{\"sps\":1000000,\"fft_size\":65536,\"clientid\":\"123\",\"basefreq\":123}";
     // Craft a JSON string for the client
+
+    std::string grid_locator = config["websdr"]["grid_locator"].value_or("-");
     glz::json_t json = {
         {"sps", sps},
         {"audio_max_sps", audio_max_sps},
@@ -55,6 +61,7 @@ void broadcast_server::send_basic_info(connection_hdl hdl) {
           {"r", default_r}}},
         {"waterfall_compression", waterfall_compression_str},
         {"audio_compression", audio_compression_str},
+        {"grid_locator", grid_locator},
     };
     m_server.send(hdl, glz::write_json(json), websocketpp::frame::opcode::text);
 }
@@ -112,6 +119,8 @@ std::mutex &broadcast_server::get_signal_slice_mtx() {
     return signal_slice_mtx;
 }
 
+
+
 void broadcast_server::on_message(connection_hdl, server::message_ptr msg,
                                   std::shared_ptr<Client> &client) {
 
@@ -122,6 +131,8 @@ void broadcast_server::on_message(connection_hdl, server::message_ptr msg,
 
 void broadcast_server::on_open_signal(connection_hdl hdl,
                                       conn_type signal_type) {
+    // Disable the logging
+    m_server.set_access_channels(websocketpp::log::alevel::none);
     send_basic_info(hdl);
 
     int audio_fft_size = ceil((double)audio_max_sps * fft_size / sps / 4.) * 4;
@@ -146,8 +157,21 @@ void broadcast_server::on_open_signal(connection_hdl hdl,
         std::placeholders::_2, std::static_pointer_cast<Client>(client)));
 }
 
+void broadcast_server::on_open_chat(connection_hdl hdl) {
+    m_server.set_access_channels(websocketpp::log::alevel::none);
+    std::shared_ptr<ChatClient> client = std::make_shared<ChatClient>(hdl, *this);
+    server::connection_ptr con = m_server.get_con_from_hdl(hdl);
+    con->set_close_handler(std::bind(&ChatClient::on_close_chat, client,
+                                     std::placeholders::_1));
+    con->set_message_handler(std::bind(
+        &broadcast_server::on_message, this, std::placeholders::_1,
+        std::placeholders::_2, std::static_pointer_cast<Client>(client)));
+}
+
 // Iterates through the client list to send the slices
 std::vector<std::future<void>> broadcast_server::signal_loop() {
+    // Disable the logging
+    m_server.set_access_channels(websocketpp::log::alevel::none);
     int base_idx = 0;
     if (!is_real) {
         base_idx = fft_size / 2 + 1;
@@ -179,6 +203,8 @@ std::vector<std::future<void>> broadcast_server::signal_loop() {
 }
 
 void broadcast_server::on_open_waterfall(connection_hdl hdl) {
+    // Disable the logging
+    m_server.set_access_channels(websocketpp::log::alevel::none);
     send_basic_info(hdl);
 
     // Set default to the entire spectrum

@@ -5,6 +5,34 @@
 #include "signal.h"
 #include "utils/dsp.h"
 
+#include <atomic>
+#include <chrono>
+#include <thread>
+#include <iostream>
+
+
+std::atomic<bool> monitor_audio_thread_running{false};
+std::atomic<size_t> total_audio_bits_sent{0}; // Atomic to safely increment from multiple clients
+double audio_kbits_per_second = 0;
+
+void monitor_audio_data_rate() {
+    monitor_audio_thread_running = true;
+    while (monitor_audio_thread_running) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        size_t bits = total_audio_bits_sent.exchange(0); // Reset counter and get value atomically
+        audio_kbits_per_second = bits / 1000.0;
+        //std::cout << "Data rate: " << kbits_per_second << " kbit/s" << std::endl;
+    }
+}
+
+void ensure_audio_monitor_thread_runs() {
+    if (!monitor_audio_thread_running) {
+        std::thread(monitor_audio_data_rate).detach();
+    }
+}
+
+
+
 AudioClient::AudioClient(connection_hdl hdl, PacketSender &sender,
                          audio_compressor audio_compression, bool is_real,
                          int audio_fft_size, int audio_max_sps,
@@ -131,8 +159,10 @@ void AudioClient::send_audio(std::complex<float> *buf, size_t frame_num) {
                 // intersect and copy
                 int copy_l = std::max(audio_l, audio_m);
                 int copy_r = std::min(audio_r, audio_m + audio_fft_size);
-                std::copy(buf + copy_l - audio_l, buf + copy_r - audio_l,
-                          audio_fft_input.get() + copy_l - audio_m);
+                 if (copy_r >= copy_l) {
+                    std::copy(buf + copy_l - audio_l, buf + copy_r - audio_l,
+                            audio_fft_input.get() + copy_l - audio_m);
+                }
                 fftwf_execute(p_real);
             } else if (demodulation == LSB) {
                 // For LSB, just copy the inverted bins to the audio frequencies
@@ -144,9 +174,11 @@ void AudioClient::send_audio(std::complex<float> *buf, size_t frame_num) {
                 int copy_l = std::max(audio_l, audio_m - audio_fft_size + 1);
                 int copy_r = std::min(audio_r, audio_m + 1);
                 // last element should be at audio_fft_size - 1
-                std::reverse_copy(buf + copy_l - audio_l,
-                                  buf + copy_r - audio_l,
-                                  audio_fft_input.get() + audio_m - copy_r + 1);
+                if (copy_r >= copy_l) {
+                    std::reverse_copy(buf + copy_l - audio_l,
+                                    buf + copy_r - audio_l,
+                                    audio_fft_input.get() + audio_m - copy_r + 1);
+                }
                 fftwf_execute(p_real);
                 std::reverse(audio_real.begin(), audio_real.end());
             }
@@ -277,7 +309,7 @@ void AudioClient::send_audio(std::complex<float> *buf, size_t frame_num) {
         agc.process(audio_real.data(), audio_fft_size / 2);
         // Quantize into 16 bit audio to save bandwidth
         dsp_float_to_int16(audio_real.data(), audio_real_int16.data(),
-                           65536 / 4, audio_fft_size / 2);
+                           65536 / 32, audio_fft_size / 2);
 
         // Set audio details
         encoder->set_data(frame_num, audio_l, audio_mid, audio_r,
@@ -285,6 +317,13 @@ void AudioClient::send_audio(std::complex<float> *buf, size_t frame_num) {
 
         // Encode audio and send it off
         encoder->process(audio_real_int16.data(), audio_fft_size / 2);
+
+        // Ensure monitoring thread is running
+        ensure_audio_monitor_thread_runs();
+        
+        // Convert bytes to bits and add to the total_bits_sent
+        size_t bits_sent = (audio_fft_size / 2 ) * 8; // Convert bytes to bits
+        total_audio_bits_sent.fetch_add(bits_sent, std::memory_order_relaxed);
 
         // Increment the frame number
         frame_num++;
@@ -320,6 +359,7 @@ void AudioClient::on_demodulation_message(std::string &demodulation) {
     } else if (demodulation == "FM") {
         this->demodulation = FM;
     }
+    this->agc.reset();
 }
 
 void AudioClient::on_close() {

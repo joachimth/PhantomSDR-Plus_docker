@@ -17,6 +17,11 @@
 template <typename T>
 using AlignedAllocator = boost::alignment::aligned_allocator<T, 64>;
 
+extern std::atomic<size_t> total_audio_bits_sent;
+extern std::atomic<bool> monitor_audio_thread_running;
+extern double audio_kbits_per_second;
+
+
 // fftwf_malloc allocator for vector
 template <typename T> struct fftwfAllocator {
     typedef T value_type;

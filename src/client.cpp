@@ -74,7 +74,24 @@ struct glz::meta<mute_cmd>
     );
 };
 
-using msg_variant = std::variant<window_cmd, demodulation_cmd, userid_cmd, mute_cmd>;
+
+struct chat_cmd {
+    std::string message;
+    std::string userid;
+};
+
+template <>
+struct glz::meta<chat_cmd>
+{
+    using T = chat_cmd;
+    static constexpr auto value = object(
+        "message", &T::message,
+        "userid", &T::userid
+    );
+};
+
+
+using msg_variant = std::variant<window_cmd, demodulation_cmd, userid_cmd, mute_cmd, chat_cmd>;
 
 template <>
 struct glz::meta<msg_variant>
@@ -84,7 +101,8 @@ struct glz::meta<msg_variant>
         "window",
         "demodulation",
         "userid",
-        "mute"
+        "mute",
+        "chat"
     };
 };
 
@@ -99,12 +117,6 @@ void Client::on_message(std::string &msg) {
         return;
     }
 
-    std::ostringstream command_log;
-    command_log << sender.ip_from_hdl(hdl);
-    command_log << " [" << type_to_name(type) << " User: " << user_id << "]";
-    command_log << " Message: " + msg;
-    sender.log(hdl, command_log.str());
-
     std::visit(
         overloaded{[&](window_cmd &cmd) {
                        on_window_message(cmd.l, cmd.m, cmd.r, cmd.level);
@@ -113,15 +125,19 @@ void Client::on_message(std::string &msg) {
                        on_demodulation_message(cmd.demodulation);
                    },
                    [&](userid_cmd &cmd) { on_userid_message(cmd.userid); },
+                   [&](chat_cmd &cmd) { on_chat_message(hdl, cmd.userid, cmd.message); },
                    [&](mute_cmd &cmd) { on_mute(cmd.mute); }},
+                   
         msg_parsed);
 }
 void Client::on_window_message(int, std::optional<double> &, int,
                                std::optional<int> &) {}
 void Client::on_demodulation_message(std::string &) {}
+void Client::on_chat_message(connection_hdl, std::string &, std::string &) {}
 void Client::on_userid_message(std::string &userid) {
     // Used for correlating between signal and waterfall sockets
     user_id = userid.substr(0, 32);
 }
+
 
 void Client::on_mute(bool mute) { this->mute = mute; }

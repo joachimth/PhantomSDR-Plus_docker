@@ -7,6 +7,8 @@ struct event_info {
     size_t waterfall_clients;
     size_t signal_clients;
     std::unordered_map<std::string, std::tuple<int, double, int>> signal_changes;
+    double waterfall_kbits;
+    double audio_kbits;
 };
 
 template <> 
@@ -16,26 +18,46 @@ struct glz::meta<event_info>
     static constexpr auto value = object(
         "waterfall_clients", &T::waterfall_clients,
         "signal_clients", &T::signal_clients,
-        "signal_changes", &T::signal_changes
+        "signal_changes", &T::signal_changes,
+        "waterfall_kbits", &T::waterfall_kbits,
+        "audio_kbits", &T::audio_kbits
     );
 };
 /* clang-format on */
 
 std::string broadcast_server::get_event_info() {
-    if (!signal_changes.size()) {
-        return "";
+
+    static auto last_kbits_time = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    
+    if (!signal_changes.size() && std::chrono::duration_cast<std::chrono::seconds>(now - last_kbits_time).count() >= 10) {
+        event_info info;
+        info.waterfall_clients = std::accumulate(
+            waterfall_slices.begin(), waterfall_slices.end(), 0,
+            [](size_t acc, const auto &it) { return acc + it.size(); });
+        info.signal_clients = signal_slices.size();
+        info.waterfall_kbits = waterfall_kbits_per_second;
+        info.audio_kbits = audio_kbits_per_second;
+        last_kbits_time = now;
+        return glz::write_json(info);
+    }else if (signal_changes.size())
+    {
+        event_info info;
+        // Put in the number of clients connected
+        info.waterfall_kbits = waterfall_kbits_per_second;
+        info.audio_kbits = audio_kbits_per_second;
+        info.waterfall_clients = std::accumulate(
+            waterfall_slices.begin(), waterfall_slices.end(), 0,
+            [](size_t acc, const auto &it) { return acc + it.size(); });
+        info.signal_clients = signal_slices.size();
+        if (show_other_users) {
+            std::scoped_lock lk(signal_changes_mtx);
+            info.signal_changes = std::move(signal_changes);
+        }
+        return glz::write_json(info);
     }
-    event_info info;
-    // Put in the number of clients connected
-    info.waterfall_clients = std::accumulate(
-        waterfall_slices.begin(), waterfall_slices.end(), 0,
-        [](size_t acc, const auto &it) { return acc + it.size(); });
-    info.signal_clients = signal_slices.size();
-    if (show_other_users) {
-        std::scoped_lock lk(signal_changes_mtx);
-        info.signal_changes = std::move(signal_changes);
-    }
-    return glz::write_json(info);
+ 
+    return "";
 }
 
 std::string broadcast_server::get_initial_state_info() {

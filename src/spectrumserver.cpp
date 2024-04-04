@@ -12,6 +12,8 @@
 #include <sstream> // For std::stringstream
 #include <iostream> // For std::cout
 #include <curl/curl.h> // For cURL functionality
+#include "glaze/glaze.hpp"
+
 
 toml::table config;
 
@@ -203,6 +205,9 @@ broadcast_server::broadcast_server(
     // Init data structures
     waterfall_slices.resize(downsample_levels);
     waterfall_slice_mtx.resize(downsample_levels);
+
+ 
+    
 }
 
 void broadcast_server::run(uint16_t port) {
@@ -231,6 +236,10 @@ void broadcast_server::run(uint16_t port) {
     fft_thread.join();
 }
 
+
+
+
+
 // To register on http://sdr-list.xyz
 void broadcast_server::update_websdr_list() {
     // Seed the random number generator
@@ -239,8 +248,10 @@ void broadcast_server::update_websdr_list() {
     int port = config["server"]["port"].value_or(9002);
     std::optional<int64_t> center_frequency = config["input"]["frequency"].value<int64_t>();
     std::optional<int64_t> bandwidth = config["input"]["sps"].value<int64_t>();
-    std::string antenna = config["server"]["antenna"].value_or("N/A");
-    std::string websdr_name = config["server"]["websdr_name"].value_or("WebSDR_" + std::to_string(std::rand()));
+    std::string antenna = config["websdr"]["antenna"].value_or("N/A");
+    std::string grid_locator = config["websdr"]["grid_locator"].value_or("-");
+    std::string hostname = config["websdr"]["hostname"].value_or("");
+    std::string websdr_name = config["websdr"]["name"].value_or("WebSDR_" + std::to_string(std::rand()));
     std::string signal_type = config["input"]["signal"].value_or("real");
 
     std::string websdr_id = std::to_string(std::rand());
@@ -254,37 +265,51 @@ void broadcast_server::update_websdr_list() {
 
     }
 
+    // Initialize cURL outside the loop
+    CURL *curl = curl_easy_init();
+    CURLcode res;
+    if (!curl) {
+        std::cerr << "Failed to initialize cURL" << std::endl;
+        return; // Or handle the error appropriately
+    }
+
+    FILE *devnull = fopen("/dev/null", "w+");
+    if (!devnull) {
+        std::cerr << "Failed to open /dev/null" << std::endl;
+        curl_easy_cleanup(curl);
+        return; // Or handle the error appropriately
+    }
+    
     while(true) {
         int user_count = static_cast<int>(events_connections.size());
 
         // Construct JSON payload manually
-        std::string json_data = "{";
-        json_data += "\"id\": \"" + websdr_id + "\", ";
-        json_data += "\"name\": \"" + websdr_name + "\", ";
-        json_data += "\"antenna\": \"" + antenna + "\", ";
-        json_data += "\"bandwidth\": " + std::to_string(bandwidth.value_or(30000000)) + ", ";
-        json_data += "\"users\": " + std::to_string(user_count) + ", ";
-        json_data += "\"center_frequency\": " + std::to_string(center_frequency.value_or(15000000)) + ", ";
-        json_data += "\"port\": " + std::to_string(port) + "}";
+        glz::json_t json_data = {
+            {"id", websdr_id},
+            {"name", websdr_name},
+            {"antenna", antenna},
+            {"bandwidth", bandwidth.value_or(30000000)},
+            {"users", user_count},
+            {"center_frequency", center_frequency.value_or(15000000)},
+            {"grid_locator", grid_locator},
+            {"hostname", hostname},
+            {"port", port}
+        };
 
-        // Initialize cURL
-        CURL *curl;
-        CURLcode res;
+        std::string serialized_json = glz::write_json(json_data);
 
-        // Initialize the cURL session
-        curl = curl_easy_init();
+       
         if(curl) {
             // Set the URL for the POST request
-            curl_easy_setopt(curl, CURLOPT_URL, "http://api.sdr-list.xyz:5000/update_websdr");
+            curl_easy_setopt(curl, CURLOPT_URL, "https://sdr-list.xyz/api/update_websdr");
 
 
             // Dont print to stdout - This is the only way to do it sadly...
-            FILE *devnull = fopen("/dev/null", "w+");
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, devnull);
 
 
             // Set the JSON data
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json_data.c_str());
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDS, serialized_json.c_str());
 
             // Disable verbose output
             curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
@@ -292,11 +317,11 @@ void broadcast_server::update_websdr_list() {
             // Set the Content-Type header
             struct curl_slist *headers = NULL;
             headers = curl_slist_append(headers, "Content-Type: application/json");
-            headers = curl_slist_append(headers, "Host: api.sdr-list.xyz:5000"); // Add Host header
+            headers = curl_slist_append(headers, "Host: sdr-list.xyz"); // Add Host header
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
             // Set the Content-Length header
-            curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, json_data.length());
+            curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, serialized_json.length());
 
             // Perform the request
             res = curl_easy_perform(curl);
@@ -305,15 +330,20 @@ void broadcast_server::update_websdr_list() {
             if(res != CURLE_OK)
                 std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
 
-            // Clean up
             curl_slist_free_all(headers);
-            curl_easy_cleanup(curl);
+
+
+            
 
         }
 
         // Delay for 10 seconds before sending the next request
         std::this_thread::sleep_for(std::chrono::seconds(10));
     }
+               // Clean up
+
+            curl_easy_cleanup(curl);
+            fclose(devnull);
 }
 
 
@@ -349,6 +379,8 @@ void broadcast_server::stop() {
     }
 }
 
+
+
 broadcast_server *g_signal;
 
 int main(int argc, char **argv) {
@@ -369,6 +401,9 @@ int main(int argc, char **argv) {
             return 0;
         }
     }
+
+    std::cout << "\r\n __                   __ __  __      \r\n|__)|_  _  _ |_ _  _ (_ |  \\|__) _|_ \r\n|   | )(_|| )|_(_)|||__)|__/| \\   |  \r\n                                     " << std::endl;
+    std::cout << "Thank you for using PhantomSDR+, you are supporting the Development of an Open-Source WebSDR Project ♥" << std::endl;
 
     config = toml::parse_file(config_file);
 
@@ -417,7 +452,7 @@ int main(int argc, char **argv) {
 
 
     int port = config["server"]["port"].value_or(9002);
-    bool register_online = config["server"]["register_online"].value_or(false);
+    bool register_online = config["websdr"]["register_online"].value_or(false);
     broadcast_server server(std::move(driver), config);
 
     if(register_online) {
