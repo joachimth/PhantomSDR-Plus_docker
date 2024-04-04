@@ -12,7 +12,7 @@ fi
 # Update and install necessary packages
 echo "Updating package lists and installing necessary packages..."
 $SUDO apt-get update
-$SUDO apt-get install -y build-essential cmake pkg-config meson libfftw3-dev libwebsocketpp-dev libflac++-dev zlib1g-dev libzstd-dev libboost-all-dev libopus-dev libliquid-dev git
+$SUDO apt-get install -y build-essential cmake pkg-config meson libfftw3-dev libwebsocketpp-dev libflac++-dev zlib1g-dev libzstd-dev libboost-all-dev libopus-dev libliquid-dev git nlohmann-json3-dev
 
 # Check if the previous command was successful
 if [ $? -eq 0 ]; then
@@ -25,8 +25,23 @@ if [ $? -eq 0 ]; then
     read -p "Select an option [1-3]: " option
 
     case $option in
-        1) 
-            # RX888 MKII / RX888 setup steps here
+        1) echo "Setting up RX888 MKII / RX888..."
+            $SUDO apt-get autoremove -y rustc
+            echo "Installing Rust..."
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+            source "$HOME/.cargo/env"
+            
+            # Clone the rx888_stream repository
+            echo "Cloning the rx888_stream repository..."
+            git clone https://github.com/rhgndf/rx888_stream
+            cd rx888_stream
+            
+            # Build and install
+            echo "Building and installing..."
+            RUSTFLAGS="-C target-cpu=native" cargo build --release
+            RUSTFLAGS="-C target-cpu=native" cargo install --path .
+            
+            echo "RX888 is successfully set up."
             ;;
         2) echo "Setting up RTLSDR..."
             read -p "Do you have a RTL-SDR V4? (y/n): " rtlsdr_v4
