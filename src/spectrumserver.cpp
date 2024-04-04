@@ -57,6 +57,7 @@ broadcast_server::broadcast_server(
     fft_size = config["input"]["fft_size"].value_or(131072);
     audio_max_sps = config["input"]["audio_sps"].value_or(12000);
     min_waterfall_fft = config["input"]["waterfall_size"].value_or(1024);
+    brightness_offset = config["input"]["brightness_offset"].value_or(0);
     show_other_users = config["server"]["otherusers"].value_or(1) > 0;
 
     default_frequency =
@@ -170,25 +171,25 @@ broadcast_server::broadcast_server(
 
     if (accelerator == GPU_cuFFT) {
 #ifdef CUFFT
-        fft = std::make_unique<cuFFT>(fft_size, fft_threads, downsample_levels);
+        fft = std::make_unique<cuFFT>(fft_size, fft_threads, downsample_levels, brightness_offset);
 #else
         throw "CUDA support is not compiled in";
 #endif
     } else if (accelerator == GPU_clFFT) {
 #ifdef CLFFT
-        fft = std::make_unique<clFFT>(fft_size, fft_threads, downsample_levels);
+        fft = std::make_unique<clFFT>(fft_size, fft_threads, downsample_levels, brightness_offset);
 #else
         throw "OpenCL support is not compiled in";
 #endif
     } else if (accelerator == CPU_mklFFT) {
 #ifdef MKL
         fft =
-            std::make_unique<mklFFT>(fft_size, fft_threads, downsample_levels);
+            std::make_unique<mklFFT>(fft_size, fft_threads, downsample_levels, brightness_offset);
 #else
         throw "MKL support is not compiled in";
 #endif
     } else {
-        fft = std::make_unique<FFTW>(fft_size, fft_threads, downsample_levels);
+        fft = std::make_unique<FFTW>(fft_size, fft_threads, downsample_levels, brightness_offset);
     }
     fft->set_output_additional_size(audio_max_fft_size);
 
