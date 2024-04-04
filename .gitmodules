@@ -1,4 +1,4 @@
 
-[submodule "html-svelte"]
-	path = html-svelte
+[submodule "frontend"]
+	path = frontend
 	url = https://github.com/Steven9101/frontend
