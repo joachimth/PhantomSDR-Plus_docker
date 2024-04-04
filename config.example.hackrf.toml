@@ -1,6 +1,6 @@
 [server]
 port=9002 # Server port
-html_root="html-svelte/dist/" # HTML files to be hosted
+html_root="frontend/dist/" # HTML files to be hosted
 otherusers=1 # Send where other users are listening, 0 to disable
 
 [websdr]
