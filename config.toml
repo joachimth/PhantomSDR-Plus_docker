@@ -9,6 +9,7 @@ register_online=true # If the SDR should be registered on https://sdr-list.xyz t
 name="Aachen WebSDR" # Name that is shown on https://sdr-list.xyz
 antenna="Mag-Loop" # Antenna that is shown on https://sdr-list.xyz
 grid_locator="JO30bs" # 4 or 6 length Grid Locator shown on https://sdr-list.xyz and for the Distance of FT8 Signals
+hostname="" # If you use ddns or something to host with a domain enter it here for https://sdr-list.xyz
 
 [limits]
 audio=1000
