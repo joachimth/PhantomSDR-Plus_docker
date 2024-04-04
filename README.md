@@ -45,7 +45,15 @@ apt install build-essential cmake pkg-config meson libfftw3-dev libwebsocketpp-d
 dnf install g++ meson cmake fftw3-devel websocketpp-devel flac-devel zlib-devel boost-devel libzstd-devel opus-devel liquid-dsp-devel
 ```
 
-### Building the binary
+### Building the binary automatically
+```
+git clone --recursive https://github.com/Steven9101/PhantomSDR-Plus.git
+cd PhantomSDR-Plus
+chmod +x install.sh
+sudo ./install.sh
+```
+
+### Building the binary manually
 ```
 git clone --recursive https://github.com/Steven9101/PhantomSDR-Plus.git
 cd PhantomSDR-Plus
