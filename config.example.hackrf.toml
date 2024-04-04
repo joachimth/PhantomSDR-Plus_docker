@@ -7,7 +7,7 @@ otherusers=1 # Send where other users are listening, 0 to disable
 register_online=true # If the SDR should be registered on https://sdr-list.xyz then put it to true
 name="Aachen WebSDR" # Name that is shown on https://sdr-list.xyz
 antenna="Mag-Loop" # Antenna that is shown on https://sdr-list.xyz
-grid_locator="JO30bs" # 4 or 6 length Grid Locator shown on https://sdr-list.xyz
+grid_locator="JO30bs" # 4 or 6 length Grid Locator shown on https://sdr-list.xyz and for the Distance of FT8 Signals
 
 [input]
 sps=20000000 # Input Sample Rate
