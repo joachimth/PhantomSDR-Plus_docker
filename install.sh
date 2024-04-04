@@ -12,7 +12,7 @@ fi
 # Update and install necessary packages
 echo "Updating package lists and installing necessary packages..."
 $SUDO apt-get update
-$SUDO apt-get install -y build-essential cmake pkg-config meson libfftw3-dev libwebsocketpp-dev libflac++-dev zlib1g-dev libzstd-dev libboost-all-dev libopus-dev libliquid-dev git nlohmann-json3-dev
+$SUDO apt-get install -y build-essential cmake pkg-config meson libfftw3-dev libwebsocketpp-dev libflac++-dev zlib1g-dev libzstd-dev libboost-all-dev libopus-dev libliquid-dev git libcurlpp-dev nlohmann-json3-dev
 
 # Check if the previous command was successful
 if [ $? -eq 0 ]; then
