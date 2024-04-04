@@ -114,6 +114,7 @@ class broadcast_server : public PacketSender {
     int audio_max_sps;
     int audio_fft_size;
     int audio_max_fft_size;
+    int brightness_offset;
     int fft_threads;
     std::string input_format;
     std::string m_docroot;
