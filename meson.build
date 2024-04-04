@@ -121,6 +121,7 @@ srcs = [
     'src/waterfall.cpp',
     'src/events.cpp',
     'src/audio.cpp',
+    'src/chat.cpp',
     'src/waterfallcompression.cpp',
 
     'src/utils/dsp.cpp',
