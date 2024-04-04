@@ -17,6 +17,14 @@ $SUDO apt-get install -y build-essential cmake pkg-config meson libfftw3-dev lib
 # Check if the previous command was successful
 if [ $? -eq 0 ]; then
     echo "Packages installed successfully."
+    # Build the main application with Meson
+    echo "Building the main application..."
+    meson build --optimization=3
+    meson compile -C build
+    if [ $? -ne 0 ]; then
+        echo "Failed to build the main application. Please check for errors and try again."
+        exit 1
+    fi
     echo "Welcome to PhantomPlus Installer!"
     echo "Which SDR would you like to set up?"
     echo "  [1] RX888 MKII / RX888"
