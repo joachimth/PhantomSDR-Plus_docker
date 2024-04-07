@@ -18,6 +18,7 @@ frequency=98000000 # Baseband frequency
 signal="iq" # real or iq
 accelerator="none" # Accelerator: none, cuda, opencl
 audio_sps=192000 # Audio Sample Rate
+smeter_offset=0
 
 [input.driver]
 name="stdin" # Driver name

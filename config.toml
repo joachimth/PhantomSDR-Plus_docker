@@ -27,6 +27,7 @@ audio_sps=192000 # Audio Sample Rate
 audio_compression="flac" # flac or opus
 waterfall_size=2048
 waterfall_compression="zstd" # zstd or av1
+smeter_offset=0
 
 [input.driver]
 name="stdin" # Driver name
