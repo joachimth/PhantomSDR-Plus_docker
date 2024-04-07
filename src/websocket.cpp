@@ -44,7 +44,8 @@ void broadcast_server::send_basic_info(connection_hdl hdl) {
     // Craft a JSON string for the client
 
     std::string grid_locator = config["websdr"]["grid_locator"].value_or("-");
-    int offset_smeter = config["input"]["smeter_offset"].value_or("0");
+    std::optional<int> offset_smeter = config["input"]["smeter_offset"].value<int>();
+    int offset_smeter_value = offset_smeter.value();
     glz::json_t json = {
         {"sps", sps},
         {"audio_max_sps", audio_max_sps},
@@ -63,7 +64,7 @@ void broadcast_server::send_basic_info(connection_hdl hdl) {
         {"waterfall_compression", waterfall_compression_str},
         {"audio_compression", audio_compression_str},
         {"grid_locator", grid_locator},
-        {"smeter_offset", offset_smeter},
+        {"smeter_offset", offset_smeter_value},
     };
     m_server.send(hdl, glz::write_json(json), websocketpp::frame::opcode::text);
 }
