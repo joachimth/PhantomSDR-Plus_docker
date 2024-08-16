@@ -46,6 +46,7 @@ dnf install g++ meson cmake fftw3-devel websocketpp-devel flac-devel zlib-devel 
 ```
 
 ### Building the binary automatically
+Restart your Terminal after you ran install.sh otherwise it wont work..
 ```
 git clone --recursive https://github.com/Steven9101/PhantomSDR-Plus.git
 cd PhantomSDR-Plus

@@ -12,7 +12,7 @@ fi
 # Update and install necessary packages
 echo "Updating package lists and installing necessary packages..."
 $SUDO apt-get update
-$SUDO apt-get install -y build-essential cmake pkg-config meson libfftw3-dev libwebsocketpp-dev libflac++-dev zlib1g-dev libzstd-dev libboost-all-dev libopus-dev libliquid-dev git libcurlpp-dev nlohmann-json3-dev
+$SUDO apt-get install -y build-essential cmake pkg-config meson libfftw3-dev libwebsocketpp-dev libflac++-dev zlib1g-dev libzstd-dev libboost-all-dev libopus-dev libliquid-dev git libcurlpp-dev curl cargo nlohmann-json3-dev
 
 # Check if the previous command was successful
 if [ $? -eq 0 ]; then
@@ -49,7 +49,7 @@ if [ $? -eq 0 ]; then
             RUSTFLAGS="-C target-cpu=native" cargo build --release
             RUSTFLAGS="-C target-cpu=native" cargo install --path .
             
-            echo "RX888 is successfully set up."
+            echo "RX888 is successfully set up. Please restart your Terminal and then run the start command."
             ;;
         2) echo "Setting up RTLSDR..."
             read -p "Do you have a RTL-SDR V4? (y/n): " rtlsdr_v4
