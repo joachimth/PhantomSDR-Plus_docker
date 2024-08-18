@@ -47,12 +47,20 @@ std::string ChatClient::get_or_generate_username(const std::string& user_id) {
 
 
 void ChatClient::store_chat_message(const std::string& message) {
-    // Store a new message, ensuring we don't exceed 100 messages
+    // Get current timestamp
+    auto now = std::chrono::system_clock::now();
+    auto now_c = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&now_c), "%Y-%m-%d %H:%M:%S");
+    std::string timestamp = ss.str();
+
+    // Store a new message with timestamp, ensuring we don't exceed 100 messages
     if(chat_messages_history.size() >= 100) {
         chat_messages_history.pop_front(); // Remove the oldest message
     }
-    chat_messages_history.push_back(message); // Add the new message
+    chat_messages_history.push_back(timestamp + " " + message); // Add the new message with timestamp
 }
+
 
 std::string ChatClient::get_chat_history_as_string() {
         std::string history;
@@ -65,12 +73,20 @@ std::string ChatClient::get_chat_history_as_string() {
     
 void ChatClient::on_chat_message(connection_hdl sender_hdl, std::string& user_id, std::string& message) {
     std::string username = get_or_generate_username(user_id);
-    std::string formatted_message = username + ": " + message;
+    
+    // Get current timestamp
+    auto now = std::chrono::system_clock::now();
+    auto now_c = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&now_c), "%Y-%m-%d %H:%M:%S");
+    std::string timestamp = ss.str();
+
+    std::string formatted_message = timestamp + " " + username + ": " + message;
 
     store_chat_message(formatted_message);
 
     // Broadcast the message to all users except the sender
-    for (const auto& conn : chat_connections) { // Assuming chat_connections is accessible and contains all client handles
+    for (const auto& conn : chat_connections) {
         sender.send_text_packet(conn, formatted_message);
     }
 }

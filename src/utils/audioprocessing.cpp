@@ -1,77 +1,72 @@
 #include "audioprocessing.h"
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 
-AGC::AGC(float desiredLevel, float attackTimeMs, float releaseTimeMs, float lookAheadTimeMs, float sr)
-    : desired_level(desiredLevel), sample_rate(sr), last_gain(1.0f), peak_1(0), peak_2(0) {
-    look_ahead_samples = static_cast<size_t>(lookAheadTimeMs * sample_rate / 1000.0f);
+AGC::AGC(float targetLevelDb, float attackTimeMs, float releaseTimeMs, float lookAheadTimeMs, float sr)
+    : sample_rate(sr) {
+    target_level = std::pow(10.0f, targetLevelDb / 20.0f);
+    attack_time = attackTimeMs / 1000.0f;
+    release_time = releaseTimeMs / 1000.0f;
+    look_ahead_samples = static_cast<size_t>(lookAheadTimeMs * sr / 1000.0f);
+    
+    gain = 1.0f;
+    max_gain = 100000.0f; // Increased for better amplification of quiet signals
+    min_gain = 0.01f;     // Decreased for better attenuation of loud signals
+    average_level = target_level;
+    
+    lookahead_buffer.resize(look_ahead_samples);
+    level_history.resize(static_cast<size_t>(sr * 0.1f), target_level); // Reduced to 100ms for faster response
 }
 
-void AGC::push(float sample) {
-    lookahead_buffer.push_back(sample);
-    if (lookahead_buffer.size() > look_ahead_samples) {
-        this->pop();
-    }
+float AGC::computeGain(float input_level) {
+    // More aggressive gain computation
+    return std::pow(target_level / (input_level + 1e-6f), 0.75f);
 }
 
-void AGC::pop() {
-    // Calculate the peak value of the lookahead buffer
-    float peak_input = 0;
-    for (float sample : lookahead_buffer) {
-        float val = std::abs(sample);
-        if (val > peak_input) {
-            peak_input = val;
-        }
-    }
-
-    // Determine the maximal peak out of the current and previous blocks
-    if (peak_input > peak_1) peak_1 = peak_input;
-    if (peak_1 > peak_2) peak_2 = peak_1;
-
-    lookahead_buffer.clear();
+float AGC::smoothGain(float new_gain) {
+    // Faster attack and release times
+    float time_constant = (new_gain > gain) ? attack_time * 0.5f : release_time * 0.5f;
+    float alpha = 1.0f - std::exp(-1.0f / (time_constant * sample_rate));
+    return gain + alpha * (new_gain - gain);
 }
-
-float AGC::max() { return peak_2; }
 
 void AGC::process(float *arr, size_t len) {
-    const size_t block_size = 3; // Block size for processing
-    for (size_t i = 0; i < len; i += block_size) {
-        size_t block_end = std::min(i + block_size, len);
-
-        // Calculate the peak value of the current block
-        float target_peak = 0;
-        for (size_t j = i; j < block_end; ++j) {
-            float sample_abs = std::abs(arr[j]);
-            if (sample_abs > target_peak) {
-                target_peak = sample_abs;
-            }
+    for (size_t i = 0; i < len; ++i) {
+        lookahead_buffer.push_back(std::abs(arr[i]));
+        float current_peak = *std::max_element(lookahead_buffer.begin(), lookahead_buffer.end());
+        
+        level_history.push_back(current_peak);
+        level_history.erase(level_history.begin());
+        
+        float long_term_level = *std::max_element(level_history.begin(), level_history.end());
+        
+        // Faster adaptation of average level
+        average_level = 0.95f * average_level + 0.05f * long_term_level;
+        
+        float target_gain = computeGain(average_level);
+        target_gain = std::clamp(target_gain, min_gain, max_gain);
+        
+        gain = smoothGain(target_gain);
+        
+        float processed_sample = arr[i] * gain;
+        
+        // Soft knee limiter with lower threshold
+        const float threshold = 0.8f;
+        if (std::abs(processed_sample) > threshold) {
+            float excess = std::abs(processed_sample) - threshold;
+            processed_sample = (processed_sample > 0 ? 1 : -1) * (threshold + std::tanh(excess));
         }
-
-        // Determine the maximal peak out of the current and previous blocks
-        if (target_peak > peak_1) peak_1 = target_peak;
-        if (peak_1 > peak_2) peak_2 = peak_1;
-
-        // Calculate the target gain
-        float target_gain = desired_level / peak_2;
-
-
-        // Limit the target gain to prevent excessive amplification
-        if (target_gain > 1000) target_gain = 1000;
-
-        target_gain *= 3.f; // Increase by 20%
-
-
-        // Apply gain to the current block
-        for (size_t j = i; j < block_end; ++j) {
-            arr[j] *= target_gain;
-        }
-
-        // Update the state for the next block
-        last_gain = target_gain;
+        
+        arr[i] = processed_sample;
+        
+        lookahead_buffer.pop_front();
     }
 }
 
 void AGC::reset() {
-    peak_1 = 0;
-    peak_2 = 0;
+    gain = 1.0f;
+    average_level = target_level;
+    std::fill(lookahead_buffer.begin(), lookahead_buffer.end(), 0.0f);
+    std::fill(level_history.begin(), level_history.end(), target_level);
 }
