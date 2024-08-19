@@ -11,14 +11,14 @@ AGC::AGC(float desiredLevel, float attackTimeMs, float releaseTimeMs, float look
     // Initialize multiple gain stages (RF, IF1, IF2, IF3, Audio)
     gains.resize(5, 1.0f);
 
-    max_gain = 500.0f; 
+    max_gain = 1000.0f; // was 500.0f Bas ON5HB
     
     // Hang system
-    hang_time = static_cast<size_t>(0.5f * sample_rate); // 500ms hang time
-    hang_threshold = 0.5f;
+    hang_time = static_cast<size_t>(0.05f * sample_rate); // Was 500ms hang time, changed to 50ms, Bas ON5HB
+    hang_threshold = 0.05f; // was 0.5f just as above
     
     // Dual time constant
-    fast_attack_coeff = 1 - exp(-1.0f / (5.0f * 0.001f * sample_rate)); // 5ms fast attack
+    fast_attack_coeff = 1 - exp(-1.0f / (0.5f * 0.001f * sample_rate)); // 5ms fast attack, made 0.5ms attack Bas ON5HB
     
     // AM time constants
     am_attack_coeff = attack_coeff * 0.1f;
