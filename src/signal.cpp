@@ -268,9 +268,16 @@ void AudioClient::send_audio(std::complex<float> *buf, size_t frame_num) {
                 dsp_add_complex(audio_complex_baseband_carrier.get(),
                                 audio_complex_baseband_carrier_prev.get(),
                                 audio_fft_size / 2);
+
+/*
 #ifdef HAS_LIQUID
+                // Improved AM demodulation with PLL optimization
+                nco_crcf_pll_set_bandwidth(mixer, 0.1f);  // Adjust as needed
+                agc_crcf q = agc_crcf_create();
+                agc_crcf_set_bandwidth(q, 0.1f);
                 for (int i = 0; i < audio_fft_size / 2; i++) {
                     std::complex<float> v0, v1;
+                    agc_crcf_execute(q, audio_complex_baseband[i], &v0);
                     nco_crcf_mix_down(mixer, audio_complex_baseband_carrier[i],
                                       &v0);
                     nco_crcf_mix_down(mixer, audio_complex_baseband[i], &v1);
@@ -279,11 +286,15 @@ void AudioClient::send_audio(std::complex<float> *buf, size_t frame_num) {
                     nco_crcf_step(mixer);
                     audio_real[i] = v1.real();
                 }
+               
 #else
                 // Envelope detection for AM
                 dsp_am_demod(audio_complex_baseband.get(), audio_real.data(),
                              audio_fft_size / 2);
-#endif
+#endif*/
+                // Envelope detection for AM - Stick to this, its better mostly
+                dsp_am_demod(audio_complex_baseband.get(), audio_real.data(),
+                             audio_fft_size / 2);
             }
             if (demodulation == FM) {
                 // Polar discriminator for FM
