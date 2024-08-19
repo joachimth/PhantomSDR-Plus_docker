@@ -28,7 +28,7 @@ We offer more features as we only maintain support for Linux instead of the offi
 ## Screenshots
 
 The Aachen WebSDR:
-![Screenshot](/docs/websdr.png)
+![Screenshot](/docs/websdr.PNG)
 
 (https://sdr-list.xyz)
 
