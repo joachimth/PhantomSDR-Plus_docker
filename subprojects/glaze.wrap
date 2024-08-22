@@ -1,6 +1,6 @@
 [wrap-git]
 url = https://github.com/stephenberry/glaze.git
-revision = 207ed12af9e7b723c058376dd1111f9130b38a88
+revision = 1c40c477ac0ba636faa539cb65beaaab58eef1fc
 depth = 1
 
 [provide]
