@@ -81,7 +81,7 @@ AudioClient::AudioClient(connection_hdl hdl, PacketSender &sender,
 
     dc = DCBlocker<float>(audio_max_sps / 750 * 2);
     //agc = AGC(0.2f, 50.0f, 300.0f, 200.0f, audio_max_sps);
-    agc = AGC(0.2f, 100.0f, 30.0f, 200.0f, audio_max_sps); // Change amplify restore being to long - magicint1337
+    agc = AGC(0.2f, 100.0f, 30.0f, 100.0f, audio_max_sps); // Change amplify restore being to long - magicint1337
     ma = MovingAverage<float>(10);
     mm = MovingMode<int>(10);
 
@@ -96,14 +96,14 @@ AudioClient::AudioClient(connection_hdl hdl, PacketSender &sender,
         p_complex = fftwf_plan_dft_1d(
             audio_fft_size, (fftwf_complex *)audio_fft_input.get(),
             (fftwf_complex *)audio_complex_baseband.get(), FFTW_BACKWARD,
-            FFTW_ESTIMATE);
+            FFTW_MEASURE);
         p_complex_carrier = fftwf_plan_dft_1d(
             audio_fft_size, (fftwf_complex *)audio_fft_input.get(),
             (fftwf_complex *)audio_complex_baseband_carrier.get(),
-            FFTW_BACKWARD, FFTW_ESTIMATE);
+            FFTW_BACKWARD, FFTW_MEASURE);
         p_real = fftwf_plan_dft_c2r_1d(audio_fft_size,
                                        (fftwf_complex *)audio_fft_input.get(),
-                                       audio_real.data(), FFTW_ESTIMATE);
+                                       audio_real.data(), FFTW_MEASURE);
     }
 }
 
