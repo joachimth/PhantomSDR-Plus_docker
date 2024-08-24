@@ -1,9 +1,12 @@
+// chat.h
 #ifndef CHAT_H
 #define CHAT_H
 
 #include "client.h"
 #include <string>
 #include <unordered_map>
+#include <deque>
+#include <set>
 
 class ChatClient : public Client {
 public:
@@ -21,6 +24,15 @@ public:
 private:
     static std::set<connection_hdl, std::owner_less<connection_hdl>> chat_connections;
     std::unordered_map<std::string, std::string> user_id_to_name;
+    static std::deque<std::string> chat_messages_history;
+    static const std::set<std::string> blocked_usernames;
+    static const std::set<std::string> blocked_words;
+    static bool is_history_loaded;
+    
+    void load_chat_history();
+    void save_chat_history();
+    bool is_valid_username(const std::string& username);
+    std::string filter_message(const std::string& message);
 };
 
 #endif
