@@ -41,7 +41,7 @@ void broadcast_server::fft_task() {
     fft_buffer = reinterpret_cast<std::complex<float>*>(fft->get_output_buffer());
 
     // Target fps is 10, *2 since 50% overlap -- reduced to 5 for test
-    int skip_num = std::max(1, (int)floor(((float)sps / fft_size) / 5.) * 2);
+    int skip_num = std::max(1, (int)floor(((float)sps / fft_size) / 10.) * 2);
     std::cout << "Waterfall is sent every " << skip_num << " FFTs" << std::endl;
 
     MovingAverage<double> sps_measured(60);
