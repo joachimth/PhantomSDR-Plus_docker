@@ -102,6 +102,10 @@ void ChatClient::on_chat_message(connection_hdl sender_hdl, std::string& usernam
     const size_t MAX_USERNAME_LENGTH = 14;
     const size_t MAX_MESSAGE_LENGTH = 40;
 
+     // Trim leading and trailing spaces from the username
+    username.erase(0, username.find_first_not_of(" \t\n\r\f\v"));
+    username.erase(username.find_last_not_of(" \t\n\r\f\v") + 1);
+
     if (username.length() > MAX_USERNAME_LENGTH) {
         username = username.substr(0, MAX_USERNAME_LENGTH);
     }
