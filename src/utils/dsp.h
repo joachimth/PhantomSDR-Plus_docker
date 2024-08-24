@@ -16,5 +16,5 @@ void dsp_add_complex(std::complex<float> *arr1, std::complex<float> *arr2,
                      size_t len);
 void dsp_am_demod(std::complex<float> *arr, float *output, size_t len);
 void dsp_float_to_int16(float *arr, int32_t *output, float mult, size_t len);
-
+void dsp_float_to_int8(float *arr, int32_t *output, float mult, size_t len);
 #endif

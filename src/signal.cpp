@@ -47,9 +47,9 @@ AudioClient::AudioClient(connection_hdl hdl, PacketSender &sender,
             std::make_unique<FlacEncoder>(hdl, sender);
         encoder->set_channels(1);
         encoder->set_verify(false);
-        encoder->set_compression_level(5);
+        encoder->set_compression_level(8);
         encoder->set_sample_rate(audio_rate);
-        encoder->set_bits_per_sample(16);
+        encoder->set_bits_per_sample(8);
         encoder->set_streamable_subset(true);
         encoder->init();
         this->encoder = std::move(encoder);
@@ -320,8 +320,8 @@ void AudioClient::send_audio(std::complex<float> *buf, size_t frame_num) {
         // AGC
         agc.process(audio_real.data(), audio_fft_size / 2);
         // Quantize into 16 bit audio to save bandwidth
-        dsp_float_to_int16(audio_real.data(), audio_real_int16.data(),
-                           65536, audio_fft_size / 2);
+        dsp_float_to_int8(audio_real.data(), audio_real_int16.data(),
+                           256, audio_fft_size / 2);
 
         // Set audio details
         encoder->set_data(frame_num, audio_l, audio_mid, audio_r,
@@ -334,7 +334,7 @@ void AudioClient::send_audio(std::complex<float> *buf, size_t frame_num) {
         ensure_audio_monitor_thread_runs();
         
         // Convert bytes to bits and add to the total_bits_sent
-        size_t bits_sent = (audio_fft_size / 2 ) * 8; // Convert bytes to bits
+        size_t bits_sent = (audio_fft_size / 2 ) * 4; // Convert bytes to bits
         total_audio_bits_sent.fetch_add(bits_sent, std::memory_order_relaxed);
 
         // Increment the frame number
