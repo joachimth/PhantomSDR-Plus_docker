@@ -81,7 +81,7 @@ AudioClient::AudioClient(connection_hdl hdl, PacketSender &sender,
 
     dc = DCBlocker<float>(audio_max_sps / 750 * 2);
     //agc = AGC(0.2f, 50.0f, 300.0f, 200.0f, audio_max_sps);
-    agc = AGC(0.2f, 100.0f, 30.0f, 100.0f, audio_max_sps); // Change amplify restore being to long - magicint1337
+    agc = AGC(0.1f, 50.0f, 300.0f, 200.0f, audio_max_sps);
     ma = MovingAverage<float>(10);
     mm = MovingMode<int>(10);
 
@@ -320,8 +320,8 @@ void AudioClient::send_audio(std::complex<float> *buf, size_t frame_num) {
         // AGC
         agc.process(audio_real.data(), audio_fft_size / 2);
         // Quantize into 16 bit audio to save bandwidth
-        dsp_float_to_int8(audio_real.data(), audio_real_int16.data(),
-                           256, audio_fft_size / 2);
+        dsp_float_to_int16(audio_real.data(), audio_real_int16.data(),
+                           65536 / 2, audio_fft_size / 2);
 
         // Set audio details
         encoder->set_data(frame_num, audio_l, audio_mid, audio_r,
