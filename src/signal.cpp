@@ -81,7 +81,7 @@ AudioClient::AudioClient(connection_hdl hdl, PacketSender &sender,
 
     dc = DCBlocker<float>(audio_max_sps / 750 * 2);
     //agc = AGC(0.2f, 50.0f, 300.0f, 200.0f, audio_max_sps);
-    agc = AGC(0.1f, 50.0f, 300.0f, 200.0f, audio_max_sps);
+    agc = AGC(0.1f, 100.0f, 30.0f, 100.0f, audio_max_sps);
     ma = MovingAverage<float>(10);
     mm = MovingMode<int>(10);
 
