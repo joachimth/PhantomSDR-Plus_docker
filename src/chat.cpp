@@ -100,7 +100,7 @@ std::string ChatClient::get_chat_history_as_string() {
 void ChatClient::on_chat_message(connection_hdl sender_hdl, std::string& username, std::string& message) {
     // Input validation
     const size_t MAX_USERNAME_LENGTH = 14;
-    const size_t MAX_MESSAGE_LENGTH = 40;
+    const size_t MAX_MESSAGE_LENGTH = 200;
 
      // Trim leading and trailing spaces from the username
     username.erase(0, username.find_first_not_of(" \t\n\r\f\v"));
