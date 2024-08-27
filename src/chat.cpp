@@ -61,26 +61,10 @@ std::string ChatClient::filter_message(const std::string& message) {
         filtered_message = std::regex_replace(filtered_message, word_regex, std::string(word.length(), '*'));
     }
 
-    // XSS protection: Escape HTML special characters
-    std::unordered_map<char, std::string> html_escape_table = {
-        {'&', "&amp;"},
-        {'\"', "&quot;"},
-        {'\'', "&#39;"},
-        {'<', "&lt;"},
-        {'>', "&gt;"}
-    };
-
-    std::string xss_protected_message;
-    for (char c : filtered_message) {
-        if (html_escape_table.find(c) != html_escape_table.end()) {
-            xss_protected_message += html_escape_table[c];
-        } else {
-            xss_protected_message += c;
-        }
-    }
-
-    return xss_protected_message;
+    return filtered_message;
 }
+
+
 void ChatClient::store_chat_message(const std::string& message) {
     if(chat_messages_history.size() >= 100) {
         chat_messages_history.pop_front();
