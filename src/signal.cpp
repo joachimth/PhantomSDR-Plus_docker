@@ -318,7 +318,7 @@ void AudioClient::send_audio(std::complex<float> *buf, size_t frame_num) {
         dc.removeDC(audio_real.data(), audio_fft_size / 2);
 
         // AGC
-        agc.process(audio_real.data(), audio_fft_size / 2);
+        //agc.process(audio_real.data(), audio_fft_size / 2);
         // Quantize into 16 bit audio to save bandwidth
         dsp_float_to_int16(audio_real.data(), audio_real_int16.data(),
                            65536 / 2, audio_fft_size / 2);
