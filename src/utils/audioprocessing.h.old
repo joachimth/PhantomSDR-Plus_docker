@@ -3,38 +3,39 @@
 
 #include <cstddef>
 #include <deque>
+#include <vector>
 
 class AGC {
-private:
+  private:
     float desired_level;
     float attack_coeff;
     float release_coeff;
+    float fast_attack_coeff;
+    float am_attack_coeff;
+    float am_release_coeff;
     size_t look_ahead_samples;
-    float gain;
+    std::vector<float> gains;
     std::deque<float> lookahead_buffer;
     std::deque<float> lookahead_max;
     float sample_rate;
-
-    float noise_reduction_smoothing;
-    float last_noise_reduction;
+    float max_gain;  // Maximum allowed gain
     
-    // Noise estimation
-    float noise_estimate;
-    float noise_adapt_speed;
+    // Hang system
+    size_t hang_time;
+    size_t hang_counter;
+    float hang_threshold;
 
     void push(float sample);
     void pop();
     float max();
-    void updateNoiseEstimate(float sample);
-    float calculateNoiseReduction(float sample);
+    void applyProgressiveAGC(float desired_gain);
 
-public:
+  public:
     AGC(float desiredLevel = 0.1f, float attackTimeMs = 50.0f,
         float releaseTimeMs = 300.0f, float lookAheadTimeMs = 10.0f,
         float sr = 44100.0f);
-    
     void process(float *arr, size_t len);
     void reset();
 };
 
-#endif // AUDIO_PROCESSING_H
+#endif
