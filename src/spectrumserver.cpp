@@ -19,33 +19,37 @@
 toml::table config;
 nlohmann::json markers;
 
-// Add a new function to read the marker.json file
-    void read_marker_file(const std::string& filename) {
-    // Initialize markers as an empty array by default
-    markers = nlohmann::json::array();
+void broadcast_server::check_and_update_markers() {
+    while (marker_update_running) {
+        
 
-    std::ifstream file(filename);
-    if (file.is_open()) {
-        try {
-            file >> markers;
-         
-            std::cout << "Markers loaded successfully from " << filename << std::endl;
-        } catch (nlohmann::json::parse_error& e) {
-            std::cerr << "Error parsing marker.json: " << e.what() << std::endl;
-            std::cerr << "Resetting markers to empty array." << std::endl;
-            markers = nlohmann::json::array();
+        std::string marker_file = "markers.json";
+        std::ifstream file(marker_file);
+        if (file.is_open()) {
+            nlohmann::json new_markers;
+            try {
+                file >> new_markers;
+                file.close();
+
+                if (new_markers != markers) {
+                    std::cout << "Markers updated." << std::endl;
+                    markers = new_markers;
+                }
+            } catch (nlohmann::json::parse_error& e) {
+                std::cerr << "Error parsing marker.json: " << e.what() << std::endl;
+            }
+        } else {
+            std::cerr << "Unable to open marker.json file." << std::endl;
         }
-    } else {
-        std::cerr << "Unable to open marker.json file. Using empty array for markers." << std::endl;
+        std::this_thread::sleep_for(std::chrono::minutes(1));
     }
 }
 
 broadcast_server::broadcast_server(
     std::unique_ptr<SampleConverterBase> reader, toml::parse_result &config)
-    : reader{std::move(reader)}, frame_num{0} {
+    : reader{std::move(reader)}, frame_num{0}, marker_update_running(false) {
 
-    std::string marker_file = "markers.json";
-    read_marker_file(marker_file);
+    
 
     server_threads = config["server"]["threads"].value_or(1);
 
@@ -240,6 +244,8 @@ broadcast_server::broadcast_server(
 void broadcast_server::run(uint16_t port) {
     // Start the threads and handle the network
     running = true;
+    marker_update_running = true;
+    marker_update_thread = std::thread(&broadcast_server::check_and_update_markers, this);
     m_server.set_listen_backlog(8192);
     m_server.set_reuse_addr(true);
     try {
@@ -376,7 +382,12 @@ void broadcast_server::update_websdr_list() {
 
 void broadcast_server::stop() {
     running = false;
+    marker_update_running = false;
     fft_processed.notify_all();
+
+    if (marker_update_thread.joinable()) {
+        marker_update_thread.join();
+    }
 
     m_server.stop_listening();
     for (auto &[slice, data] : signal_slices) {

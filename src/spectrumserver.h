@@ -167,6 +167,12 @@ class broadcast_server : public PacketSender {
 
     // Dedicated threads for FFT
     std::thread fft_thread;
+
+
+    // Markers
+    void check_and_update_markers();
+    std::thread marker_update_thread;
+    std::atomic<bool> marker_update_running;
 };
 
 #endif
