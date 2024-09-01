@@ -21,6 +21,7 @@
 using websocketpp::connection_hdl;
 
 extern toml::table config;
+extern nlohmann::json markers;
 
 typedef std::set<connection_hdl, std::owner_less<connection_hdl>>
     event_con_list;

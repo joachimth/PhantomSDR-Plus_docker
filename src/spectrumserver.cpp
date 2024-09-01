@@ -13,13 +13,39 @@
 #include <iostream> // For std::cout
 #include <curl/curl.h> // For cURL functionality
 #include "glaze/glaze.hpp"
+#include <nlohmann/json.hpp>
 
 
 toml::table config;
+nlohmann::json markers;
+
+// Add a new function to read the marker.json file
+    void read_marker_file(const std::string& filename) {
+    // Initialize markers as an empty array by default
+    markers = nlohmann::json::array();
+
+    std::ifstream file(filename);
+    if (file.is_open()) {
+        try {
+            file >> markers;
+         
+            std::cout << "Markers loaded successfully from " << filename << std::endl;
+        } catch (nlohmann::json::parse_error& e) {
+            std::cerr << "Error parsing marker.json: " << e.what() << std::endl;
+            std::cerr << "Resetting markers to empty array." << std::endl;
+            markers = nlohmann::json::array();
+        }
+    } else {
+        std::cerr << "Unable to open marker.json file. Using empty array for markers." << std::endl;
+    }
+}
 
 broadcast_server::broadcast_server(
     std::unique_ptr<SampleConverterBase> reader, toml::parse_result &config)
     : reader{std::move(reader)}, frame_num{0} {
+
+    std::string marker_file = "markers.json";
+    read_marker_file(marker_file);
 
     server_threads = config["server"]["threads"].value_or(1);
 

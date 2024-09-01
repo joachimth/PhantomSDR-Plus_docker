@@ -65,7 +65,9 @@ void broadcast_server::send_basic_info(connection_hdl hdl) {
         {"audio_compression", audio_compression_str},
         {"grid_locator", grid_locator},
         {"smeter_offset", offset_smeter_value},
+        {"markers", markers.dump()}  
     };
+    
     m_server.send(hdl, glz::write_json(json), websocketpp::frame::opcode::text);
 }
 
@@ -171,6 +173,7 @@ void broadcast_server::on_open_chat(connection_hdl hdl) {
         std::placeholders::_2, std::static_pointer_cast<Client>(client)));
 }
 
+
 // Iterates through the client list to send the slices
 std::vector<std::future<void>> broadcast_server::signal_loop() {
     // Disable the logging
@@ -193,6 +196,7 @@ std::vector<std::future<void>> broadcast_server::signal_loop() {
         // audio
         auto con = m_server.get_con_from_hdl(data->hdl);
         if (con->get_buffered_amount() > 50000) {
+            printf("Dropping Audio due to buffering slow client\n");
             continue;
         }
         // Equivalent to
@@ -204,6 +208,7 @@ std::vector<std::future<void>> broadcast_server::signal_loop() {
     }
     return futures;
 }
+
 
 void broadcast_server::on_open_waterfall(connection_hdl hdl) {
     // Disable the logging
@@ -243,6 +248,7 @@ broadcast_server::waterfall_loop(int8_t *fft_power_quantized) {
             // drop the packet
             auto con = m_server.get_con_from_hdl(data->hdl);
             if (con->get_buffered_amount() > 50000) {
+                printf("Dropping Audio due to buffering slow client\n");
                 continue;
             }
             // Equivalent to
