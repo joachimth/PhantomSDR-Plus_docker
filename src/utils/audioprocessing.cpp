@@ -27,7 +27,7 @@ AGC::AGC(float desiredLevel, float attackTimeMs, float releaseTimeMs, float look
 
 
     // Initialize Noise Blanker parameters
-    nb_enabled = true;
+    nb_enabled = false;
     nb_fft_size = 512;
     nb_overlap = 256;
     nb_average_windows = 32;
