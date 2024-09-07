@@ -2,7 +2,6 @@
 #include <cmath>
 #include <algorithm>
 
-
 AGC::AGC(float desiredLevel, float attackTimeMs, float releaseTimeMs, float lookAheadTimeMs, float sr)
     : desired_level(desiredLevel), sample_rate(sr) {
     look_ahead_samples = static_cast<size_t>(lookAheadTimeMs * sample_rate / 1000.0f);
@@ -24,24 +23,6 @@ AGC::AGC(float desiredLevel, float attackTimeMs, float releaseTimeMs, float look
     // AM time constants
     am_attack_coeff = attack_coeff * 0.1f;
     am_release_coeff = release_coeff * 0.1f;
-
-
-    // Initialize Noise Blanker parameters
-    nb_enabled = false;
-    nb_fft_size = 512;
-    nb_overlap = 256;
-    nb_average_windows = 32;
-    nb_threshold = 95.f;
-    
-    nb_buffer.resize(nb_fft_size);
-    nb_spectrum_history.resize(nb_average_windows, std::vector<float>(nb_fft_size / 2));
-    nb_spectrum_average.resize(nb_fft_size / 2);
-    nb_history_index = 0;
-
-    nb_fft_in = fftwf_alloc_complex(nb_fft_size);
-    nb_fft_out = fftwf_alloc_complex(nb_fft_size);
-    nb_fft_plan = fftwf_plan_dft_1d(nb_fft_size, nb_fft_in, nb_fft_out, FFTW_FORWARD, FFTW_ESTIMATE);
-    nb_ifft_plan = fftwf_plan_dft_1d(nb_fft_size, nb_fft_out, nb_fft_in, FFTW_BACKWARD, FFTW_ESTIMATE);
     
     reset();
 }
@@ -70,83 +51,9 @@ float AGC::max() {
     return lookahead_max.empty() ? 0.0f : std::abs(lookahead_max.front());
 }
 
-void AGC::applyNoiseBlanker(std::vector<float>& buffer) {
-    std::vector<float> processed_buffer(buffer.size());
-
-    for (size_t i = 0; i < buffer.size(); i += nb_overlap) {
-        // Fill the buffer
-        size_t copy_size = std::min(nb_fft_size, buffer.size() - i);
-        std::copy(buffer.begin() + i, buffer.begin() + i + copy_size, nb_buffer.begin());
-
-        // Perform FFT
-        for (size_t j = 0; j < nb_fft_size; ++j) {
-            nb_fft_in[j][0] = nb_buffer[j];
-            nb_fft_in[j][1] = 0;
-        }
-        fftwf_execute(nb_fft_plan);
-
-        // Calculate magnitude spectrum
-        std::vector<float> magnitude_spectrum(nb_fft_size / 2);
-        for (size_t j = 0; j < nb_fft_size / 2; ++j) {
-            magnitude_spectrum[j] = std::sqrt(nb_fft_out[j][0] * nb_fft_out[j][0] + nb_fft_out[j][1] * nb_fft_out[j][1]);
-        }
-
-        // Update average spectrum
-        nb_spectrum_history[nb_history_index] = magnitude_spectrum;
-        nb_history_index = (nb_history_index + 1) % nb_average_windows;
-
-        for (size_t j = 0; j < nb_fft_size / 2; ++j) {
-            nb_spectrum_average[j] = std::accumulate(nb_spectrum_history.begin(), nb_spectrum_history.end(), 0.0f,
-                [j](float sum, const std::vector<float>& spectrum) { return sum + spectrum[j]; }) / nb_average_windows;
-        }
-
-        // Calculate average signal level
-        float avg_signal_level = std::accumulate(nb_spectrum_average.begin(), nb_spectrum_average.end(), 0.0f) / nb_spectrum_average.size();
-
-        // Dynamic threshold based on average signal level
-        float dynamic_threshold = nb_threshold * avg_signal_level;
-
-        // Scale current spectrum
-        for (size_t j = 0; j < nb_fft_size / 2; ++j) {
-            float ratio = magnitude_spectrum[j] / nb_spectrum_average[j];
-            float scale = ratio > 1 ? 1 / std::pow(ratio, 0.5f) : 1; // More gradual scaling
-            nb_fft_out[j][0] *= scale;
-            nb_fft_out[j][1] *= scale;
-        }
-
-        // Inverse FFT
-        fftwf_execute(nb_ifft_plan);
-
-        // Apply noise reduction
-        for (size_t j = 0; j < nb_fft_size && (i + j) < buffer.size(); ++j) {
-            float magnitude = std::sqrt(nb_fft_in[j][0] * nb_fft_in[j][0] + nb_fft_in[j][1] * nb_fft_in[j][1]);
-
-            if (magnitude > dynamic_threshold) {
-                float reduction_factor = dynamic_threshold / magnitude;
-                processed_buffer[i + j] = buffer[i + j] * reduction_factor;
-            } else {
-                processed_buffer[i + j] = buffer[i + j];
-            }
-        }
-    }
-
-    // Copy the processed buffer back to the input buffer
-    buffer = processed_buffer;
-}
-
-
 void AGC::process(float *arr, size_t len) {
-    std::vector<float> buffer(arr, arr + len);
-
-    // Apply Noise Blanker if enabled
-    if(nb_enabled) {
-        applyNoiseBlanker(buffer);
-    }
-    
-
-
     for (size_t i = 0; i < len; i++) {
-        push(buffer[i]);
+        push(arr[i]);
 
         if (lookahead_buffer.size() == look_ahead_samples) {
             float current_sample = lookahead_buffer.front();
@@ -160,7 +67,7 @@ void AGC::process(float *arr, size_t len) {
             float total_gain = 1.0f;
             for (float g : gains) total_gain *= g;
             total_gain = std::min(total_gain, max_gain);  // Apply maximum gain limit
-            arr[i] = current_sample * (total_gain * 0.01f);
+            arr[i] = current_sample * (total_gain * 0.5);
         } else {
             arr[i] = 0.0f;
         }
@@ -206,5 +113,4 @@ void AGC::reset() {
     lookahead_buffer.clear();
     lookahead_max.clear();
     hang_counter = 0;
-
 }

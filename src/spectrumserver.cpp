@@ -286,6 +286,7 @@ void broadcast_server::update_websdr_list() {
     std::string hostname = config["websdr"]["hostname"].value_or("");
     std::string websdr_name = config["websdr"]["name"].value_or("WebSDR_" + std::to_string(std::rand()));
     std::string signal_type = config["input"]["signal"].value_or("real");
+    std::optional<int64_t> max_users = config["limits"]["audio"].value<int64_t>();
 
     std::string websdr_id = std::to_string(std::rand());
     if(signal_type == "real")
@@ -326,6 +327,7 @@ void broadcast_server::update_websdr_list() {
             {"center_frequency", center_frequency.value_or(15000000)},
             {"grid_locator", grid_locator},
             {"hostname", hostname},
+            {"max_users", max_users.value_or(100)},
             {"port", port}
         };
 
