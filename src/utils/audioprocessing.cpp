@@ -52,28 +52,39 @@ float AGC::max() {
 }
 
 void AGC::process(float *arr, size_t len) {
+    const float epsilon = 1e-15f;  // Small value to prevent division by zero
+    const float safe_min = std::numeric_limits<float>::min();
+    const float safe_max = std::numeric_limits<float>::max();
+
     for (size_t i = 0; i < len; i++) {
         push(arr[i]);
 
         if (lookahead_buffer.size() == look_ahead_samples) {
             float current_sample = lookahead_buffer.front();
             float peak_sample = max();
-
-            float desired_gain = std::min(desired_level / (peak_sample + 1e-15f), max_gain);
+            
+            // Ensure peak_sample is not too close to zero
+            peak_sample = std::max(peak_sample, epsilon);
+            
+            // Calculate desired_gain safely
+            float ratio = desired_level / peak_sample;
+            ratio = std::max(safe_min, std::min(ratio, safe_max));
+            float desired_gain = std::min(ratio, max_gain);
 
             applyProgressiveAGC(desired_gain);
 
             // Apply the combined gain to the current sample
             float total_gain = 1.0f;
-            for (float g : gains) total_gain *= g;
+            for (float g : gains) {
+                total_gain *= std::max(safe_min, std::min(g, safe_max));
+            }
             total_gain = std::min(total_gain, max_gain);  // Apply maximum gain limit
-            arr[i] = current_sample * (total_gain * 0.5);
+            arr[i] = current_sample * (total_gain * 0.5f);
         } else {
             arr[i] = 0.0f;
         }
     }
 }
-
 void AGC::applyProgressiveAGC(float desired_gain) {
     // Apply AGC progressively to different stages
     for (size_t i = 0; i < gains.size(); ++i) {
