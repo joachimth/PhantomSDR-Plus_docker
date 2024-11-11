@@ -69,7 +69,8 @@ void ChatClient::store_chat_message(const std::string& message) {
     if(chat_messages_history.size() >= 100) {
         chat_messages_history.pop_front();
     }
-    chat_messages_history.push_back(message);
+    else
+        chat_messages_history.push_back(message);
     save_chat_history();
 }
 
