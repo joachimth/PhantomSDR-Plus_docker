@@ -66,11 +66,14 @@ std::string ChatClient::filter_message(const std::string& message) {
 
 
 void ChatClient::store_chat_message(const std::string& message) {
-    if(chat_messages_history.size() >= 100) {
+    if(chat_messages_history.size() >= 20) 
+    {
         chat_messages_history.pop_front();
     }
     else
+    {
         chat_messages_history.push_back(message);
+    }
     save_chat_history();
 }
 
