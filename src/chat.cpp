@@ -138,7 +138,7 @@ void ChatClient::on_close_chat(connection_hdl hdl) {
 void ChatClient::load_chat_history() {
     std::ifstream file("chat_history.txt");
     std::string line;
-    while (std::getline(file, line) && chat_messages_history.size() < 100) {
+    while (std::getline(file, line) && chat_messages_history.size() < 20) {
         chat_messages_history.push_back(line);
     }
     file.close();
