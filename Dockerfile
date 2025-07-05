@@ -1,12 +1,12 @@
-# === Build Stage 1: Setting up PhantomSDR-Plus and necessary tools ===
-#FROM python:3.10-slim-buster as builder
+# === PhantomSDR-Plus Docker Container ===
+FROM python:3.10-slim-buster
 
 LABEL maintainer="Joachim Thirsbro <joachim@thirsbro.dk>"
 
 # Set working directory
 WORKDIR /app
 
-# Install build dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
@@ -24,14 +24,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     psmisc \
     wget \
     unzip \
+    rtl-sdr \
     && rm -rf /var/lib/apt/lists/*
 
 # Clone and build PhantomSDR-Plus
 RUN git clone https://github.com/joachimth/PhantomSDR-Plus_docker.git && \
-    cd PhantomSDR-Plus \
-    chmod +x *.sh \
-    # sudo ./install.sh \
-    rtl_sdr -f 145000000 -s 3200000 - | ./build/spectrumserver --config config.toml
+    cd PhantomSDR-Plus_docker && \
+    chmod +x *.sh && \
+    ./install.sh
+
+# Copy application files if needed
+COPY . /app/
+
+# Create logs directory
+RUN mkdir -p /app/logs
 
 # Define volume for logs
 VOLUME /app/logs
@@ -39,20 +45,19 @@ VOLUME /app/logs
 # Expose port for Server Port
 EXPOSE 9002
 
-# Copy built binaries from builder stage
-COPY --from=builder /usr/local/bin/ /usr/local/bin/
-COPY --from=builder /usr/local/lib/ /usr/local/lib/
+# Set PATH to include local binaries
+ENV PATH="/usr/local/bin:${PATH}"
 
-# Copy application code
-COPY . /app
+# Ensure LD_LIBRARY_PATH includes local libraries
+ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 
 # Define default command
-CMD ["start-rtl.sh"]
+CMD ["./start-rtl.sh"]
 
-# Metadata
+# Metadata labels
 LABEL \
-    org.label-schema.name="pptf" \
+    org.label-schema.name="phantomsdr-plus" \
     org.label-schema.description="Docker container for PhantomSDR-Plus" \
-    org.label-schema.version="${DOCKER_IMAGE_VERSION:-}" \
+    org.label-schema.version="${DOCKER_IMAGE_VERSION:-latest}" \
     org.label-schema.vcs-url="https://github.com/joachimth/PhantomSDR-Plus" \
     org.label-schema.schema-version="1.0"
