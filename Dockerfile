@@ -36,34 +36,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && update-ca-certificates
 
-# Clone PhantomSDR-Plus from your repository
-RUN git clone --recursive https://github.com/joachimth/PhantomSDR-Plus_docker.git || \
-    (git config --global http.sslVerify false && \
-     git clone --recursive https://github.com/joachimth/PhantomSDR-Plus_docker.git) && \
-    cd PhantomSDR-Plus_docker && \
-    chmod +x *.sh
+# Copy source code from the repository (already available in build context)
+COPY . /app/PhantomSDR-Plus
+WORKDIR /app/PhantomSDR-Plus
 
-# Build PhantomSDR-Plus manually to avoid install script issues
-RUN cd PhantomSDR-Plus_docker && \
-    meson setup builddir --optimization=3 && \
+# Make scripts executable
+RUN chmod +x *.sh
+
+# Build PhantomSDR-Plus using the included source code
+RUN meson setup builddir --optimization=3 && \
     meson compile -C builddir
 
 # Create necessary directories
 RUN mkdir -p /app/logs
 
 # Copy built binary to expected location
-RUN cp PhantomSDR-Plus_docker/builddir/spectrumserver /usr/local/bin/ || \
-    cp PhantomSDR-Plus_docker/build/spectrumserver /usr/local/bin/
+RUN cp builddir/spectrumserver /usr/local/bin/ || \
+    cp build/spectrumserver /usr/local/bin/
 
 # Copy configuration template if it exists
-RUN cp PhantomSDR-Plus_docker/config.toml /app/config.toml.template 2>/dev/null || \
+RUN cp config.toml /app/config.toml.template 2>/dev/null || \
     echo "# PhantomSDR Config" > /app/config.toml.template
 
 # Define volume for logs
 VOLUME /app/logs
 
 # Expose port (ændre til 8080 hvis det er standard)
-EXPOSE 8080
+EXPOSE 9002
 
 # Create a simple start script
 RUN echo '#!/bin/bash\n\
