@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libliquid-dev \
     libusb-1.0-0-dev \
     libcurl4-openssl-dev \
+    nlohmann-json3-dev \
     git \
     psmisc \
     wget \
@@ -62,7 +63,7 @@ RUN cp config.toml /app/config.toml.template 2>/dev/null || \
 VOLUME /app/logs
 
 # Expose port (ændre til 8080 hvis det er standard)
-EXPOSE 9002
+EXPOSE 8080
 
 # Create a simple start script
 RUN echo '#!/bin/bash\n\
