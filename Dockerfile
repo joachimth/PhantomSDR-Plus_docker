@@ -1,7 +1,12 @@
 # === PhantomSDR-Plus Docker Container ===
-FROM python:3.10-slim-buster
+FROM ubuntu:22.04
 
 LABEL maintainer="Joachim Thirsbro <joachim@thirsbro.dk>"
+
+# Set environment variables to avoid warnings
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LD_LIBRARY_PATH="/usr/local/lib"
+ENV PATH="/usr/local/bin:${PATH}"
 
 # Set working directory
 WORKDIR /app
@@ -20,6 +25,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libboost-all-dev \
     libopus-dev \
     libliquid-dev \
+    libusb-1.0-0-dev \
+    libcurl4-openssl-dev \
     git \
     psmisc \
     wget \
@@ -27,32 +34,51 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rtl-sdr \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone and build PhantomSDR-Plus
-RUN git clone https://github.com/joachimth/PhantomSDR-Plus_docker.git PhantomSDR-Plus && \
+# For now, clone Steven9101's working version instead
+# Change this when your repository is ready
+RUN git clone --recursive https://github.com/Steven9101/PhantomSDR-Plus.git && \
     cd PhantomSDR-Plus && \
-    chmod +x *.sh && \
-    ./install.sh
+    chmod +x *.sh
 
-# Create logs directory
+# Build PhantomSDR-Plus manually to avoid install script issues
+RUN cd PhantomSDR-Plus && \
+    meson setup builddir --optimization=3 && \
+    meson compile -C builddir
+
+# Create necessary directories
 RUN mkdir -p /app/logs
+
+# Copy built binary to expected location
+RUN cp PhantomSDR-Plus/builddir/spectrumserver /usr/local/bin/ || \
+    cp PhantomSDR-Plus/build/spectrumserver /usr/local/bin/
+
+# Copy configuration template if it exists
+RUN cp PhantomSDR-Plus/config.toml /app/config.toml.template 2>/dev/null || \
+    echo "# PhantomSDR Config" > /app/config.toml.template
 
 # Define volume for logs
 VOLUME /app/logs
 
-# Expose port for Server Port
-EXPOSE 9002
+# Expose port (ændre til 8080 hvis det er standard)
+EXPOSE 8080
 
-# Set PATH to include local binaries
-ENV PATH="/usr/local/bin:${PATH}"
-ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
+# Create a simple start script
+RUN echo '#!/bin/bash\n\
+cd /app\n\
+if [ ! -f config.toml ]; then\n\
+    cp config.toml.template config.toml\n\
+fi\n\
+echo "Starting PhantomSDR-Plus..."\n\
+exec /usr/local/bin/spectrumserver --config config.toml' > /app/start.sh && \
+    chmod +x /app/start.sh
 
 # Define default command
-CMD ["./PhantomSDR-Plus/start-rtl.sh"]
+CMD ["/app/start.sh"]
 
 # Metadata labels
 LABEL \
     org.label-schema.name="phantomsdr-plus" \
     org.label-schema.description="Docker container for PhantomSDR-Plus" \
-    org.label-schema.version="${DOCKER_IMAGE_VERSION:-latest}" \
+    org.label-schema.version="latest" \
     org.label-schema.vcs-url="https://github.com/joachimth/PhantomSDR-Plus" \
     org.label-schema.schema-version="1.0"
