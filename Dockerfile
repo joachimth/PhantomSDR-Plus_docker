@@ -175,9 +175,8 @@ echo "Web interface should be available at http://localhost:9002"\n\
 echo "HTML root: /app/html"\n\
 ls -la /app/html/ | head -10\n\
 \n\
-rtl_sdr -g 32 -f 145000000 -s 2048000 - | ./build/spectrumserver --config config.toml\n\' > /app/start.sh && \
+rtl_sdr -g 32 -f 145000000 -s 2048000 - | exec /usr/local/bin/spectrumserver --config config.toml\n\' > /app/start.sh && \
     chmod +x /app/start.sh
-
 
 # Define default command
 CMD ["/app/start.sh"]
