@@ -17,13 +17,13 @@ waterfall=1000
 events=1000
 
 [input]
-sps=20000000 # Input Sample Rate
-fft_size=1048576 # FFT bins
+sps=2880000 # Input Sample Rate
+fft_size=131072 # FFT bins
 brightness_offset=0 # Waterfall brightness offset. Reduce to negative if you see black regions in the waterfall
-frequency=98000000 # Baseband frequency
+frequency=145000000 # Baseband frequency
 signal="iq" # real or iq
 accelerator="none" # Accelerator: none, cuda, opencl
-audio_sps=192000 # Audio Sample Rate
+audio_sps=12000 # Audio Sample Rate
 audio_compression="flac" # flac or opus
 waterfall_size=2048
 waterfall_compression="zstd" # zstd or av1
@@ -34,5 +34,5 @@ name="stdin" # Driver name
 format="u8" # Sample format: u8, s8, u16, s16, u32, s32, f32, f64
 
 [input.defaults]
-frequency=93300000 # Default frequency to show user
+frequency=145000000 # Default frequency to show user
 modulation="WBFM" # Default modulation
