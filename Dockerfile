@@ -123,9 +123,9 @@ htmlroot = "/app/html"\n\
 \n\
 [sdr]\n\
 device = "rtlsdr"\n\
-frequency = 145700000\n\
-sample_rate = 3200000\n\
-gain = 40\n\
+frequency = 145000000\n\
+sample_rate = 2048000\n\
+gain = 32\n\
 \n\
 [gpu]\n\
 enabled = false\n\
@@ -142,8 +142,8 @@ RUN echo '{\n\
   "siteLocation": "Denmark",\n\
   "siteOperator": "Joachim Thirsbro",\n\
   "siteEmail": "joachim@thirsbro.dk",\n\
-  "siteSDRBaseFrequency": 0,\n\
-  "siteSDRBandwidth": 30000000,\n\
+  "siteSDRBaseFrequency": 145000000,\n\
+  "siteSDRBandwidth": 8048000,\n\
   "siteSDRRegion": 2\n\
 }' > /app/site_information.json.template
 
