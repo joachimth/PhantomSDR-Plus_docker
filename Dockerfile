@@ -46,14 +46,18 @@ RUN chmod +x *.sh
 
 # Build PhantomSDR-Plus using the included source code
 RUN meson setup builddir --optimization=3 && \
-    meson compile -C builddir
+    meson compile -C builddir && \
+    meson install -C builddir
 
 # Create necessary directories
 RUN mkdir -p /app/logs
 
-# Copy built binary to expected location
-RUN cp builddir/spectrumserver /usr/local/bin/ || \
-    cp build/spectrumserver /usr/local/bin/
+# Copy built binary to expected location (fallback if meson install doesn't work)
+RUN cp builddir/spectrumserver /usr/local/bin/ 2>/dev/null || true
+
+# Copy shared libraries to system location
+RUN find builddir -name "*.so*" -exec cp {} /usr/local/lib/ \; && \
+    ldconfig
 
 # Copy configuration template if it exists
 RUN cp config.toml /app/config.toml.template 2>/dev/null || \
