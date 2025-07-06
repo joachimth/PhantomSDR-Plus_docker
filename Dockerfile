@@ -44,19 +44,33 @@ WORKDIR /app/PhantomSDR-Plus
 # Make scripts executable
 RUN chmod +x *.sh
 
-# Build PhantomSDR-Plus using static linking to avoid library issues
-RUN meson setup builddir --optimization=3 --default-library=static && \
+# Build PhantomSDR-Plus and manually handle all libraries
+RUN meson setup builddir --optimization=3 && \
     meson compile -C builddir
+
+# Create library directory and copy all built shared libraries
+RUN mkdir -p /usr/local/lib/phantomsdr && \
+    find builddir -name "*.so*" -type f -exec cp {} /usr/local/lib/phantomsdr/ \; && \
+    find builddir -name "*.so.*" -type f -exec cp {} /usr/local/lib/phantomsdr/ \; && \
+    cp builddir/spectrumserver /usr/local/bin/ && \
+    chmod +x /usr/local/bin/spectrumserver
+
+# Also copy to standard library location as backup
+RUN find builddir -name "*.so*" -type f -exec cp {} /usr/local/lib/ \;
+
+# Update library cache with both locations
+RUN echo "/usr/local/lib/phantomsdr" > /etc/ld.so.conf.d/phantomsdr.conf && \
+    ldconfig
+
+# Create wrapper script with explicit library path
+RUN echo '#!/bin/bash\n\
+export LD_LIBRARY_PATH="/usr/local/lib/phantomsdr:/usr/local/lib:${LD_LIBRARY_PATH}"\n\
+echo "Starting PhantomSDR-Plus with library path: $LD_LIBRARY_PATH"\n\
+exec /usr/local/bin/spectrumserver "$@"' > /app/spectrumserver-wrapper && \
+    chmod +x /app/spectrumserver-wrapper
 
 # Create necessary directories
 RUN mkdir -p /app/logs
-
-# Copy built binary to expected location
-RUN cp builddir/spectrumserver /usr/local/bin/spectrumserver && \
-    chmod +x /usr/local/bin/spectrumserver
-
-# Verify binary works and check dependencies
-RUN ldd /usr/local/bin/spectrumserver || echo "Static binary - no shared dependencies"
 
 # Copy configuration template if it exists
 RUN cp config.toml /app/config.toml.template 2>/dev/null || \
