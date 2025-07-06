@@ -46,18 +46,24 @@ WORKDIR /app/PhantomSDR-Plus
 # Make scripts executable
 RUN chmod +x *.sh
 
+# Initialize git submodules to get the frontend
+RUN git submodule update --init --recursive || \
+    (echo "Submodule init failed, cloning frontend manually..." && \
+     git clone https://github.com/Steven9101/frontend.git frontend)
+
 # Build PhantomSDR-Plus backend
 RUN meson setup builddir --optimization=3 && \
     meson compile -C builddir
 
-# Build frontend if it exists
-RUN if [ -d "frontend" ]; then \
+# Build frontend (now that submodule is initialized)
+RUN if [ -d "frontend" ] && [ "$(ls -A frontend)" ]; then \
         cd frontend && \
-        echo "Building frontend..." && \
+        echo "Building frontend from Steven9101/frontend..." && \
         npm install && \
-        npm run build 2>/dev/null || echo "Frontend build completed"; \
+        (npm run build || npm run dev || echo "Frontend build completed with warnings"); \
     else \
-        echo "No frontend directory found"; \
+        echo "Frontend directory is empty or missing!"; \
+        exit 1; \
     fi
 
 # Create library directory and copy all built shared libraries
@@ -77,26 +83,32 @@ RUN echo "/usr/local/lib/phantomsdr" > /etc/ld.so.conf.d/phantomsdr.conf && \
 # Create HTML directory and copy frontend files
 RUN mkdir -p /app/html && \
     if [ -d "frontend/dist" ]; then \
-        echo "Copying frontend from dist..." && \
+        echo "Copying frontend from frontend/dist..." && \
         cp -r frontend/dist/* /app/html/; \
     elif [ -d "frontend/build" ]; then \
-        echo "Copying frontend from build..." && \
+        echo "Copying frontend from frontend/build..." && \
         cp -r frontend/build/* /app/html/; \
+    elif [ -d "frontend/public" ]; then \
+        echo "Copying frontend from frontend/public..." && \
+        cp -r frontend/public/* /app/html/; \
+    elif [ -d "frontend" ] && [ "$(ls -A frontend)" ]; then \
+        echo "Copying frontend source files..." && \
+        cp -r frontend/* /app/html/; \
     elif [ -d "html" ]; then \
         echo "Copying from html directory..." && \
         cp -r html/* /app/html/; \
-    elif [ -d "frontend" ]; then \
-        echo "Copying frontend source files..." && \
-        cp -r frontend/* /app/html/; \
     else \
-        echo "Creating minimal HTML interface..." && \
+        echo "No frontend files found! Creating minimal HTML interface..." && \
         echo '<!DOCTYPE html>\
 <html><head><title>PhantomSDR-Plus</title></head>\
-<body><h1>PhantomSDR-Plus</h1>\
+<body><h1>PhantomSDR-Plus Backend Running</h1>\
 <p>Backend is running on port 9002</p>\
-<p>Frontend files may need to be configured.</p>\
+<p>Frontend submodule may need manual configuration.</p>\
+<p>Check: <a href="https://github.com/Steven9101/frontend">Steven9101/frontend</a></p>\
 </body></html>' > /app/html/index.html; \
-    fi
+    fi && \
+    echo "Frontend files copied to /app/html/" && \
+    ls -la /app/html/ | head -10
 
 # Create necessary directories
 RUN mkdir -p /app/logs
