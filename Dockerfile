@@ -74,13 +74,43 @@ RUN mkdir -p /app/logs
 
 # Copy configuration template if it exists
 RUN cp config.toml /app/config.toml.template 2>/dev/null || \
-    echo "# PhantomSDR Config" > /app/config.toml.template
+    echo '# PhantomSDR-Plus Configuration - Edit as needed\n\
+[server]\n\
+port = 9002\n\
+max_users = 100\n\
+htmlroot = "/app/html"\n\
+\n\
+[sdr]\n\
+device = "rtlsdr"\n\
+frequency = 145700000\n\
+sample_rate = 3200000\n\
+gain = 40\n\
+\n\
+[gpu]\n\
+enabled = false\n\
+device = "auto"\n\
+\n\
+[logging]\n\
+level = "info"\n\
+file = "/app/logs/phantomsdr.log"' > /app/config.toml.template
+
+# Create site information template
+RUN echo '{\n\
+  "siteName": "PhantomSDR-Plus Station",\n\
+  "siteDescription": "High-performance WebSDR",\n\
+  "siteLocation": "Denmark",\n\
+  "siteOperator": "Joachim Thirsbro",\n\
+  "siteEmail": "joachim@thirsbro.dk",\n\
+  "siteSDRBaseFrequency": 0,\n\
+  "siteSDRBandwidth": 30000000,\n\
+  "siteSDRRegion": 2\n\
+}' > /app/site_information.json.template
 
 # Define volume for logs
 VOLUME /app/logs
 
 # Expose port (ændre til 8080 hvis det er standard)
-EXPOSE 8080
+EXPOSE 9002
 
 # Create a simple start script
 RUN echo '#!/bin/bash\n\
